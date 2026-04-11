@@ -44,3 +44,7 @@ artifacts/
 tmp/
 temp/
 services/ai/storage/
+
+
+# PDF Test files
+test_manuals/
