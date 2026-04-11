@@ -1,0 +1,45 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Node / frontend / backend
+**/node_modules/
+**/dist/
+**/build/
+**/.vite/
+**/.turbo/
+**/.next/
+**/coverage/
+**/*.tsbuildinfo
+
+# Python / AI service
+**/__pycache__/
+**/*.py[cod]
+**/*.pyd
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.venv/
+**/venv/
+**/env/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local storage / generated assets
+uploads/
+artifacts/
+tmp/
+temp/
