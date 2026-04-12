@@ -1,12 +1,13 @@
-import IORedis from "ioredis";
+import { Redis } from "ioredis";
 
 import { env } from "../config/env.js";
 
-let redisClient: IORedis | null = null;
+let redisClient: Redis | null = null;
+let redisConnectPromise: Promise<void> | null = null;
 
-function buildRedisClient(): IORedis {
+function buildRedisClient(): Redis {
     const isTls = env.redisUrl.startsWith("rediss://");
-    return new IORedis(env.redisUrl, {
+    return new Redis(env.redisUrl, {
         maxRetriesPerRequest: null,
         enableReadyCheck: true,
         lazyConnect: true,
@@ -14,7 +15,7 @@ function buildRedisClient(): IORedis {
     });
 }
 
-export function getRedisClient(): IORedis {
+export function getRedisClient(): Redis {
     if (!redisClient) {
         redisClient = buildRedisClient();
     }
@@ -23,10 +24,50 @@ export function getRedisClient(): IORedis {
 
 export async function connectRedis(): Promise<void> {
     const client = getRedisClient();
-    if (client.status === "ready" || client.status === "connect") {
+
+    if (client.status === "ready") {
         return;
     }
-    await client.connect();
+
+    if (redisConnectPromise) {
+        await redisConnectPromise;
+        return;
+    }
+
+    if (client.status === "connecting" || client.status === "connect" || client.status === "reconnecting") {
+        redisConnectPromise = new Promise<void>((resolve, reject) => {
+            const cleanup = () => {
+                client.off("ready", onReady);
+                client.off("error", onError);
+                redisConnectPromise = null;
+            };
+
+            const onReady = () => {
+                cleanup();
+                resolve();
+            };
+
+            const onError = (error: Error) => {
+                cleanup();
+                reject(error);
+            };
+
+            client.once("ready", onReady);
+            client.once("error", onError);
+        });
+
+        await redisConnectPromise;
+        return;
+    }
+
+    redisConnectPromise = client
+        .connect()
+        .then(() => undefined)
+        .finally(() => {
+            redisConnectPromise = null;
+        });
+
+    await redisConnectPromise;
 }
 
 export async function pingRedis(): Promise<{ ok: boolean; response: string }> {
