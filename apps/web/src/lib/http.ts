@@ -24,17 +24,28 @@ async function parseError(response: Response): Promise<string> {
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData
+
     const response = await fetch(`${API_BASE_URL}${path}`, {
         ...init,
         headers: {
-            'Content-Type': 'application/json',
             Accept: 'application/json',
+            ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
             ...(init.headers || {}),
         },
     })
 
     if (!response.ok) {
         throw new Error(`${response.status} ${response.statusText}: ${await parseError(response)}`)
+    }
+
+    if (response.status === 204) {
+        return undefined as T
+    }
+
+    const contentType = response.headers.get('content-type') || ''
+    if (!contentType.includes('application/json')) {
+        return (await response.text()) as T
     }
 
     return (await response.json()) as T

@@ -57,9 +57,9 @@ export function HomePage(): React.JSX.Element {
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">Ready for Next Phase</CardTitle>
-                        <CardDescription>Manual upload, jobs, and checklist pages come next.</CardDescription>
+                        <CardDescription>Manual upload, jobs, and checklist pages are now live.</CardDescription>
                     </CardHeader>
-                    <CardContent className="text-sm text-slate-600">UI scaffold is now clean, routed, and auth-aware.</CardContent>
+                    <CardContent className="text-sm text-slate-600">Sign in to upload manuals and run checklist generation end-to-end.</CardContent>
                 </Card>
             </section>
         </main>

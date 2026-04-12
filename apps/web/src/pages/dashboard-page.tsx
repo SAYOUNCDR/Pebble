@@ -1,6 +1,8 @@
 import { ShieldCheck, UserRound } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import { useAuth } from '../features/auth/auth-context'
+import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 
 export function DashboardPage(): React.JSX.Element {
@@ -11,7 +13,15 @@ export function DashboardPage(): React.JSX.Element {
             <section className="rounded-3xl border border-slate-200 bg-linear-to-b from-white to-slate-100 p-8 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Authenticated</p>
                 <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Welcome back, {user?.fullName}</h1>
-                <p className="mt-3 text-sm text-slate-600">This is your protected dashboard shell. Jobs/manual/checklist modules come next.</p>
+                <p className="mt-3 text-sm text-slate-600">Manage manuals, run AI checklist generation jobs, and review completed checklists.</p>
+                <div className="mt-5 flex flex-wrap gap-3">
+                    <Link to="/manuals">
+                        <Button>Open Manuals</Button>
+                    </Link>
+                    <Link to="/jobs">
+                        <Button variant="outline">Open Jobs</Button>
+                    </Link>
+                </div>
             </section>
 
             <section className="mt-6 grid gap-4 md:grid-cols-2">
@@ -45,7 +55,7 @@ export function DashboardPage(): React.JSX.Element {
                         <CardDescription>Frontend auth foundation is complete.</CardDescription>
                     </CardHeader>
                     <CardContent className="text-sm text-slate-700">
-                        Next implementation: manuals upload, jobs queue polling, checklist pages, and exports.
+                        Pipeline pages are active: upload manual, start generation, poll job state, and open checklist detail.
                     </CardContent>
                 </Card>
             </section>

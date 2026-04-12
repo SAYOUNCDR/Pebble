@@ -41,6 +41,16 @@ jobsRouter.post("/generate", requireAuth, async (request: Request, response: Res
     });
 });
 
+jobsRouter.get("/", requireAuth, async (request: Request, response: Response) => {
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
+
+    const jobs = await JobModel.find({ ownerUserId }).sort({ createdAt: -1 }).lean();
+    response.status(200).json({ jobs });
+});
+
 jobsRouter.get("/:jobId", requireAuth, async (request: Request, response: Response) => {
     const ownerUserId = request.authUser?.sub;
     if (!ownerUserId) {
