@@ -17,7 +17,7 @@ export function SiteHeader(): React.JSX.Element {
             <div className="mx-auto w-[80%] max-w-6xl rounded-2xl border border-slate-200/80 bg-white/85 px-4 shadow-lg shadow-slate-900/5 backdrop-blur-md">
                 <div className="flex h-16 items-center justify-between">
                     <Link to="/" className="text-sm font-semibold tracking-[0.08em] text-slate-900 uppercase">
-                        PageIndex Console
+                        Pebble
                     </Link>
 
                     <nav className="flex items-center gap-2">
