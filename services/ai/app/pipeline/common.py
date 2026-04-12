@@ -28,6 +28,14 @@ def verified_checklist_path(checklist_id: str) -> Path:
     return _directory("checklists") / f"{checklist_id}.verified.json"
 
 
+def pageindex_doc_path(manual_id: str) -> Path:
+    return _directory("pageindex") / f"{manual_id}.doc.json"
+
+
+def pageindex_tree_path(manual_id: str) -> Path:
+    return _directory("pageindex") / f"{manual_id}.tree.json"
+
+
 def read_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
@@ -37,4 +45,3 @@ def read_json(path: Path) -> dict[str, Any]:
 def write_json(path: Path, data: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(orjson.dumps(data, option=orjson.OPT_INDENT_2))
-

@@ -35,12 +35,17 @@ class SectionOutline(BaseModel):
 class BuildIndexRequest(BaseModel):
     manual_id: str = Field(min_length=3, max_length=80)
     chunk_size_pages: int = Field(default=3, ge=1, le=30)
+    provider: Literal["local", "pageindex"] = "local"
+    force_rebuild: bool = False
 
 
 class BuildIndexResponse(BaseModel):
     manual_id: str
     section_count: int
     sections: list[SectionOutline]
+    provider: Literal["local", "pageindex"]
+    doc_id: str | None = None
+    tree_node_count: int | None = None
     status: Literal["indexed"]
 
 
@@ -69,6 +74,8 @@ class GenerateChecklistRequest(BaseModel):
     objective: str = "Extract preventive and safety maintenance checklist"
     max_items: int = Field(default=25, ge=1, le=100)
     strict_citations: bool | None = None
+    retrieval_mode: Literal["heuristic", "tree_search"] = "heuristic"
+    expert_rules: str | None = None
 
 
 class GenerateChecklistResponse(BaseModel):
@@ -77,6 +84,8 @@ class GenerateChecklistResponse(BaseModel):
     item_count: int
     items: list[ChecklistItem]
     warnings: list[str] = Field(default_factory=list)
+    retrieval_mode: Literal["heuristic", "tree_search"]
+    selected_node_ids: list[str] = Field(default_factory=list)
     status: Literal["generated"]
 
 
@@ -100,4 +109,3 @@ class VerifyChecklistResponse(BaseModel):
     accepted_items: list[ChecklistItem]
     rejected_items: list[RejectedItem]
     status: Literal["verified"]
-

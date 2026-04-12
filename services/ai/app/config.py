@@ -12,6 +12,10 @@ class AppSettings(BaseSettings):
     request_timeout_seconds: int = 90
     strict_citations_default: bool = True
     storage_root: Path = Path(__file__).resolve().parents[1] / "storage"
+    pageindex_base_url: str = "https://api.pageindex.ai"
+    pageindex_api_key: str | None = None
+    pageindex_poll_interval_seconds: int = 5
+    pageindex_poll_timeout_seconds: int = 240
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -23,4 +27,3 @@ class AppSettings(BaseSettings):
 
 settings = AppSettings()
 settings.storage_root.mkdir(parents=True, exist_ok=True)
-
