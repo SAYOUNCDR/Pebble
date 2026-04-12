@@ -1,112 +1,104 @@
-# Manual Checklist Builder
+# Pebble: High-Precision Manual Checklist Builder
 
-![Status](https://img.shields.io/badge/status-MVP%20in%20progress-orange)
+![Status](https://img.shields.io/badge/status-active%20development-orange)
 ![Frontend](https://img.shields.io/badge/frontend-React%20%2B%20Vite-61DAFB?logo=react&logoColor=white)
 ![Backend](https://img.shields.io/badge/backend-Node.js%20%2B%20Express-339933?logo=node.js&logoColor=white)
 ![AI Service](https://img.shields.io/badge/ai-Python%20%2B%20FastAPI-009688?logo=fastapi&logoColor=white)
-![Model](<https://img.shields.io/badge/model-Gemma4%20(local)-4285F4?logo=google&logoColor=white>)
-![Retrieval](<https://img.shields.io/badge/retrieval-PageIndex--style%20(vectorless)-6A5ACD>)
+![Queue](https://img.shields.io/badge/queue-BullMQ-red)
+![Data](https://img.shields.io/badge/data-MongoDB%20%2B%20Redis-4EA94B)
 
-Convert long technical manuals into actionable maintenance checklists with strict, page-level evidence.
+Don\'t just search your manuals. Reason through them.
 
-## Overview
+Pebble is a local-first tool that converts dense technical manuals into actionable maintenance checklists using a PageIndex-style vectorless pipeline.
 
-This repository contains a multi-service MVP for manual-to-checklist generation.
+## Core Idea
 
-- Frontend: React + Vite UI for running the AI pipeline
-- API service: Node.js + Express + TypeScript orchestration layer
-- AI service: Python + FastAPI pipeline for ingest, indexing, generation, and verification
-- Local LLM: Gemma4 served via OpenAI-compatible endpoint
-- Retrieval: Local heuristic indexing or PageIndex tree indexing (selectable)
+Traditional vector-only RAG can miss procedural dependencies in technical docs. Pebble focuses on structural navigation and grounding:
 
-## Why This Exists
+1. Understand document hierarchy.
+2. Navigate sections with reasoning.
+3. Generate checklist tasks with strict citation requirements.
 
-Vector-only RAG can miss procedural dependencies in long, structured manuals. This project uses structure-aware retrieval to improve grounding and traceability.
+## Architecture
 
-Expected outcomes:
+Pebble runs as a 3-service stack:
 
-- Better section-level retrieval on long documents
-- Checklist items with evidence metadata
-- Strict verification and rejection of weakly grounded items
+- Frontend: `apps/web` (React + Vite)
+- API: `services/api` (Express + TypeScript)
+- AI engine: `services/ai` (FastAPI)
 
-## Current Capabilities
+Current request flow:
 
-- PDF ingest and page extraction
-- Index build with provider selection:
-  - local: heuristic section extraction
-  - pageindex: cloud tree indexing
-- Checklist generation with retrieval mode selection:
-  - heuristic
-  - tree_search
-- Optional expert routing rules for tree search prompts
-- Checklist verification with citation checks
-- Frontend console to execute the full pipeline end to end
+`React -> Express (/api/*) -> FastAPI (/v1/*)`
 
-## System Architecture
+Async generation uses Redis + BullMQ worker:
 
-### Frontend (apps/web)
+`Express API enqueue -> Worker process -> FastAPI pipeline -> Mongo persistence`
 
-- Runs on Vite
-- Calls FastAPI endpoints directly
-- Exposes controls for:
-  - index provider (local or pageindex)
-  - force rebuild for PageIndex
-  - retrieval mode (heuristic or tree_search)
-  - optional expert rules
+## What Is Implemented
 
-### API Service (services/api)
+- JWT auth (`register`, `login`, `me`)
+- Manual upload and metadata persistence
+- Async checklist generation jobs
+- Job status polling via API
+- Checklist retrieval page
+- Provider selection (`local` or `pageindex`)
+- Retrieval mode selection (`heuristic` or `tree_search`)
 
-- Express service scaffold exists and runs independently
-- Intended to orchestrate auth, jobs, teams, exports, and persistence workflows
+## API Endpoints
 
-### AI Service (services/ai)
+Implemented Express endpoints:
 
-- FastAPI app with endpoints:
-  - GET /health
-  - POST /v1/ingest
-  - POST /v1/pageindex/build
-  - POST /v1/checklist/generate
-  - POST /v1/checklist/verify
-- Uses local Gemma4-compatible chat endpoint via DMR_BASE_URL and DMR_MODEL
-- Uses PageIndex SDK when installed, with HTTP fallback behavior in code
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `POST /api/manuals`
+- `GET /api/manuals`
+- `GET /api/manuals/:manualId`
+- `POST /api/manuals/:manualId/checklists/generate`
+- `GET /api/jobs`
+- `GET /api/jobs/:jobId`
+- `GET /api/checklists/:checklistId`
 
-## Repository Layout
+AI service endpoints:
 
-```txt
-apps/
-	web/
-services/
-	api/
-	ai/
-packages/
-	shared-types/
-infra/
-docs/
-test_manuals/
-```
+- `GET /health`
+- `POST /v1/ingest`
+- `POST /v1/pageindex/build`
+- `POST /v1/checklist/generate`
+- `POST /v1/checklist/verify`
 
-## Prerequisites
+## Requirements
 
 - Node.js 20+
 - npm 10+
 - Python 3.11+
 - pip
-- A local OpenAI-compatible LLM endpoint for Gemma4 (default: http://localhost:12434/engines/v1)
-- Optional: PageIndex API key for pageindex provider mode
+- MongoDB
+- Redis
+- Local OpenAI-compatible model endpoint (Gemma via Docker Model Runner is recommended)
 
-## Environment Setup
+## Environment
 
-### Frontend env
-
-Create apps/web/.env from apps/web/.env.example:
+### Frontend (`apps/web/.env`)
 
 ```env
-VITE_AI_BASE_URL=http://localhost:8001
+VITE_API_BASE_URL=http://localhost:4000
+VITE_APP_NAME=Pebble
 ```
 
-### AI env
+### API (`services/api/.env`)
 
-Create services/ai/.env from services/ai/.env.example and set values:
+```env
+PORT=4000
+JWT_SECRET=dev-change-me
+JWT_EXPIRES_IN=7d
+MONGODB_URI=mongodb://localhost:27017/pageindex
+REDIS_URL=redis://localhost:6379
+AI_SERVICE_BASE_URL=http://localhost:8001
+```
+
+### AI (`services/ai/.env`)
 
 ```env
 APP_NAME=manual-checklist-ai
@@ -123,35 +115,15 @@ PAGEINDEX_POLL_INTERVAL_SECONDS=5
 PAGEINDEX_POLL_TIMEOUT_SECONDS=240
 ```
 
-Notes:
-
-- Leave PAGEINDEX_API_KEY empty if you only use local indexing.
-- Add your key to enable pageindex provider mode.
-
 ## Install
 
-### Web
-
 ```bash
-cd apps/web
-npm install
+cd apps/web && npm install
+cd ../..\services\api && npm install
+cd ..\ai && pip install -r requirements.txt
 ```
 
-### API
-
-```bash
-cd services/api
-npm install
-```
-
-### AI
-
-```bash
-cd services/ai
-pip install -r requirements.txt
-```
-
-Optional PageIndex SDK install:
+Optional:
 
 ```bash
 pip install pageindex
@@ -159,79 +131,54 @@ pip install pageindex
 
 ## Run Locally
 
-Run each service in a separate terminal.
+Use 4 terminals.
 
-### Start AI service
+### 1) AI service
 
 ```bash
 cd services/ai
 uvicorn app.main:app --reload --port 8001
 ```
 
-### Start web app
-
-```bash
-cd apps/web
-npm run dev
-```
-
-### Start API service (optional in current direct-wiring flow)
+### 2) API service
 
 ```bash
 cd services/api
 npm run dev
 ```
 
-## Pipeline Usage (UI)
+### 3) Worker service (required for job processing)
 
-1. Open web app.
-2. Run Step 1 Ingest with manual ID and PDF absolute path.
-3. Run Step 2 Build Index and choose provider:
-   - local for heuristic sections
-   - pageindex for cloud tree indexing
-4. Run Step 3 Generate Checklist and choose retrieval mode.
-5. Run Step 4 Verify Checklist.
+```bash
+cd services/api
+npm run worker:dev
+```
 
-## API Reference
+### 4) Web app
 
-### AI service
+```bash
+cd apps/web
+npm run dev
+```
 
-- GET /health
-- POST /v1/ingest
-- POST /v1/pageindex/build
-- POST /v1/checklist/generate
-- POST /v1/checklist/verify
+## Health Checks
 
-### Planned orchestration API (services/api)
+- API health: `GET http://localhost:4000/health`
+- API deps: `GET http://localhost:4000/health/deps`
+- AI health: `GET http://localhost:8001/health`
 
-- POST /api/auth/register
-- POST /api/auth/login
-- POST /api/manuals
-- GET /api/manuals/:manualId
-- POST /api/manuals/:manualId/checklists/generate
-- GET /api/jobs/:jobId
-- GET /api/checklists/:checklistId
-- PATCH /api/checklists/:checklistId
-- PATCH /api/checklists/:checklistId/items/:itemId
-- POST /api/checklists/:checklistId/export/pdf
-- GET /api/exports/:exportId
+## Common Pitfall
 
-## Development Notes
+If job pages keep returning `304 Not Modified` for a long time, usually the worker is not running. Start:
 
-- Current UI is intentionally wired directly to FastAPI for rapid iteration.
-- services/api is present and can be developed as the long-term orchestrator.
-- Storage artifacts are saved under services/ai/storage.
-
-## Security Notes
-
-- Never commit real API keys.
-- If any key was exposed, rotate it immediately.
-- Keep manual files and generated artifacts scoped to trusted environments.
+```bash
+cd services/api
+npm run worker:dev
+```
 
 ## Roadmap
 
-- Complete API orchestration integration between web and services/api
-- Add auth and team scoping end to end
-- Add job queue-backed async generation
-- Add export UX and report templates
-- Expand tests across AI pipeline and API modules
+- Checklist edit endpoints (`PATCH`)
+- Export flow (`/api/exports`)
+- Team/workspace boundaries
+- More integration and e2e tests
