@@ -1,3 +1,4 @@
+import asyncio
 import re
 from datetime import datetime, UTC
 from pathlib import Path
@@ -180,7 +181,7 @@ async def _build_from_pageindex(payload: BuildIndexRequest, manual_data: dict[st
             break
         if status == "failed":
             raise ValueError("PageIndex tree generation failed for this document.")
-        await __import__("asyncio").sleep(settings.pageindex_poll_interval_seconds)
+        await asyncio.sleep(settings.pageindex_poll_interval_seconds)
 
     if tree_payload is None:
         raise TimeoutError("Timed out waiting for PageIndex tree generation.")

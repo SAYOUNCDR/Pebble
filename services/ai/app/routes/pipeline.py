@@ -29,9 +29,9 @@ def ingest(payload: IngestRequest) -> IngestResponse:
 
 
 @router.post("/pageindex/build", response_model=BuildIndexResponse)
-def build_index(payload: BuildIndexRequest) -> BuildIndexResponse:
+async def build_index(payload: BuildIndexRequest) -> BuildIndexResponse:
     try:
-        return build_pageindex(payload)
+        return await build_pageindex(payload)
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except ValueError as error:
@@ -56,4 +56,3 @@ def verify(payload: VerifyChecklistRequest) -> VerifyChecklistResponse:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
-
