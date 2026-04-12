@@ -8,7 +8,9 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { notFoundHandler } from "./middleware/notFound.js";
 import { aiRouter } from "./modules/ai/routes.js";
 import { authRouter } from "./modules/auth/routes.js";
+import { checklistsRouter } from "./modules/checklists/routes.js";
 import { jobsRouter } from "./modules/jobs/routes.js";
+import { manualsRouter } from "./modules/manuals/routes.js";
 
 export const app = express();
 
@@ -50,6 +52,8 @@ app.get("/health/deps", async (_req: Request, res: Response, next: NextFunction)
 app.use("/api/ai", aiRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/jobs", jobsRouter);
+app.use("/api/manuals", manualsRouter);
+app.use("/api/checklists", checklistsRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

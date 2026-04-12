@@ -68,3 +68,61 @@ export async function verifyChecklist(payload: unknown): Promise<unknown> {
         throw toHttpError(error, "AI checklist verification failed.");
     }
 }
+
+export interface PipelineRunInput {
+    manualId: string;
+    manualName: string;
+    filePath: string;
+    provider: "local" | "pageindex";
+    objective: string;
+    maxItems: number;
+    retrievalMode: "heuristic" | "tree_search";
+    strictCitations: boolean;
+}
+
+export interface PipelineRunResult {
+    ingest: unknown;
+    index: unknown;
+    generate: {
+        checklist_id?: string;
+        [key: string]: unknown;
+    };
+    verify: unknown;
+}
+
+export async function runFullPipeline(input: PipelineRunInput): Promise<PipelineRunResult> {
+    const ingestResponse = await ingest({
+        manual_id: input.manualId,
+        manual_name: input.manualName,
+        file_path: input.filePath,
+    });
+
+    const indexResponse = await buildIndex({
+        manual_id: input.manualId,
+        provider: input.provider,
+    });
+
+    const generateResponse = (await generateChecklist({
+        manual_id: input.manualId,
+        objective: input.objective,
+        max_items: input.maxItems,
+        strict_citations: input.strictCitations,
+        retrieval_mode: input.retrievalMode,
+    })) as {
+        checklist_id?: string;
+        [key: string]: unknown;
+    };
+
+    const verifyResponse = await verifyChecklist({
+        manual_id: input.manualId,
+        checklist_id: generateResponse.checklist_id,
+        strict_citations: input.strictCitations,
+    });
+
+    return {
+        ingest: ingestResponse,
+        index: indexResponse,
+        generate: generateResponse,
+        verify: verifyResponse,
+    };
+}
