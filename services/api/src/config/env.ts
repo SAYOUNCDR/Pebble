@@ -26,6 +26,7 @@ export const env = {
     nodeEnv: process.env.NODE_ENV?.trim() || "development",
     port: optionalNumber("PORT", 4000),
     jwtSecret: required("JWT_SECRET", "dev-change-me"),
+    jwtExpiresIn: required("JWT_EXPIRES_IN", "7d"),
     mongoDbUri: required("MONGODB_URI", "mongodb://localhost:27017/pageindex"),
     redisUrl: required("REDIS_URL", "redis://localhost:6379"),
     aiServiceBaseUrl: required("AI_SERVICE_BASE_URL", "http://localhost:8001"),

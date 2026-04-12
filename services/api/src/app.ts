@@ -2,9 +2,13 @@ import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
 import morgan from "morgan";
 import { env } from "./config/env.js";
+import { getMongoHealth } from "./db/mongoose.js";
+import { pingRedis } from "./db/redis.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFoundHandler } from "./middleware/notFound.js";
 import { aiRouter } from "./modules/ai/routes.js";
+import { authRouter } from "./modules/auth/routes.js";
+import { jobsRouter } from "./modules/jobs/routes.js";
 
 export const app = express();
 
@@ -25,12 +29,16 @@ app.get("/health/deps", async (_req: Request, res: Response, next: NextFunction)
         const aiStatus = await fetch(`${env.aiServiceBaseUrl}/health`)
             .then((response) => ({ ok: response.ok, status: response.status }))
             .catch(() => ({ ok: false, status: 0 }));
+        const mongo = getMongoHealth();
+        const redis = await pingRedis();
 
         res.status(200).json({
-            status: aiStatus.ok ? "ok" : "degraded",
+            status: aiStatus.ok && mongo.state === "connected" && redis.ok ? "ok" : "degraded",
             service: "api",
             dependencies: {
                 ai: aiStatus,
+                mongo,
+                redis,
             },
             timestamp: new Date().toISOString(),
         });
@@ -40,6 +48,8 @@ app.get("/health/deps", async (_req: Request, res: Response, next: NextFunction)
 });
 
 app.use("/api/ai", aiRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/jobs", jobsRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
