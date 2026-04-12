@@ -1,12 +1,19 @@
 import json
-import re
 from datetime import datetime, UTC
 from uuid import uuid4
 
 from app.config import settings
 from app.llm.dmr_client import DMRClient
 from app.models.schemas import ChecklistItem, GenerateChecklistRequest, GenerateChecklistResponse
-from app.pipeline.common import checklist_path, index_path, manual_path, read_json, write_json
+from app.pipeline.common import (
+    checklist_path,
+    index_path,
+    manual_path,
+    pageindex_tree_path,
+    read_json,
+    write_json,
+)
+from app.pipeline.pageindex.tree_search import llm_tree_search, tree_nodes_to_sections
 
 
 def _normalize_priority(value: str) -> str:
@@ -52,6 +59,21 @@ def _pick_candidate_sections(sections: list[dict[str, object]], limit: int = 8) 
     scored = sorted(sections, key=_score_section, reverse=True)
     candidates = scored[:limit]
     return candidates if candidates else sections[:limit]
+
+
+def _sections_to_tree_nodes(sections: list[dict[str, object]]) -> list[dict[str, object]]:
+    tree_nodes: list[dict[str, object]] = []
+    for section in sections:
+        tree_nodes.append(
+            {
+                "node_id": str(section.get("section_id", "")),
+                "title": str(section.get("title", "")),
+                "page_index": int(section.get("page_start", 1)),
+                "text": str(section.get("summary", "")),
+                "nodes": [],
+            }
+        )
+    return tree_nodes
 
 
 def _build_prompt(manual_name: str, objective: str, sections: list[dict[str, object]], max_items: int) -> str:
@@ -184,7 +206,41 @@ async def generate_checklist(payload: GenerateChecklistRequest) -> GenerateCheck
     if not isinstance(sections, list) or not sections:
         raise ValueError("Manual index not found. Run /v1/pageindex/build first.")
 
-    candidate_sections = _pick_candidate_sections(sections=sections, limit=10)
+    retrieval_mode = payload.retrieval_mode
+    selected_node_ids: list[str] = []
+    candidate_sections: list[dict[str, object]]
+
+    if retrieval_mode == "tree_search":
+        tree_nodes: list[dict[str, object]] = []
+        try:
+            tree_doc = read_json(pageindex_tree_path(payload.manual_id))
+            raw_tree = tree_doc.get("tree", [])
+            if isinstance(raw_tree, list):
+                tree_nodes = raw_tree
+        except FileNotFoundError:
+            tree_nodes = []
+
+        if not tree_nodes:
+            tree_nodes = _sections_to_tree_nodes(sections=sections)
+
+        selected_node_ids, routing_note = await llm_tree_search(
+            objective=payload.objective,
+            tree_nodes=tree_nodes,
+            max_nodes=min(max(payload.max_items, 1), 12),
+            expert_rules=payload.expert_rules,
+        )
+        candidate_sections = tree_nodes_to_sections(tree_nodes=tree_nodes, node_ids=selected_node_ids)
+        if not candidate_sections:
+            candidate_sections = _pick_candidate_sections(sections=sections, limit=10)
+            selected_node_ids = [str(section.get("section_id", "")) for section in candidate_sections]
+            warnings_seed = "Tree search returned no section candidates. Heuristic fallback used."
+        else:
+            warnings_seed = f"Tree search routing note: {routing_note}"
+    else:
+        candidate_sections = _pick_candidate_sections(sections=sections, limit=10)
+        selected_node_ids = [str(section.get("section_id", "")) for section in candidate_sections]
+        warnings_seed = ""
+
     strict_citations = (
         payload.strict_citations if payload.strict_citations is not None else settings.strict_citations_default
     )
@@ -196,7 +252,7 @@ async def generate_checklist(payload: GenerateChecklistRequest) -> GenerateCheck
         max_items=payload.max_items,
     )
 
-    warnings: list[str] = []
+    warnings: list[str] = [warnings_seed] if warnings_seed else []
     generated_raw_items: list[dict[str, object]] = []
     dmr_client = DMRClient()
 
@@ -238,6 +294,8 @@ async def generate_checklist(payload: GenerateChecklistRequest) -> GenerateCheck
         "created_at": datetime.now(UTC).isoformat(),
         "strict_citations": strict_citations,
         "objective": payload.objective,
+        "retrieval_mode": retrieval_mode,
+        "selected_node_ids": selected_node_ids,
         "items": [item.model_dump() for item in checklist_items],
         "warnings": warnings,
     }
@@ -249,6 +307,7 @@ async def generate_checklist(payload: GenerateChecklistRequest) -> GenerateCheck
         item_count=len(checklist_items),
         items=checklist_items,
         warnings=warnings,
+        retrieval_mode=retrieval_mode,
+        selected_node_ids=selected_node_ids,
         status="generated",
     )
-
