@@ -32,6 +32,8 @@ def ingest(payload: IngestRequest) -> IngestResponse:
 async def build_index(payload: BuildIndexRequest) -> BuildIndexResponse:
     try:
         return await build_pageindex(payload)
+    except TimeoutError as error:
+        raise HTTPException(status_code=504, detail=str(error)) from error
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except ValueError as error:
