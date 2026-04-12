@@ -31,6 +31,11 @@
   - `POST /v1/pageindex/build`
   - `POST /v1/checklist/generate`
   - `POST /v1/checklist/verify`
+- PageIndex + local Gemma hybrid upgrade implemented:
+  - `/v1/pageindex/build` supports `provider: "local" | "pageindex"`
+  - PageIndex cloud tree indexing via API key when provider is `pageindex`
+  - Local Gemma4 `llm_tree_search` added for node selection (`retrieval_mode: "tree_search"`)
+  - Checklist generation can now run with heuristic mode or tree-search mode
 - User-validated route sequence:
   - Ingest tested with real PDF (`newiomanual.pdf`): success (`page_count=32`, `word_count=12729`)
   - Generate tested and returned checklist successfully
@@ -38,8 +43,13 @@
 
 ## Python MVP Behavior
 - `/v1/ingest`: reads local PDF, stores parsed page text in local JSON storage.
-- `/v1/pageindex/build`: builds section map using heading heuristics (fallback fixed-size chunks).
-- `/v1/checklist/generate`: attempts Gemma4 generation through DMR; falls back to deterministic checklist if model call fails or output is invalid.
+- `/v1/pageindex/build`:
+  - `provider="local"`: heading heuristics + fixed chunk fallback
+  - `provider="pageindex"`: uploads PDF to PageIndex, polls completion, fetches tree, flattens to sections
+- `/v1/checklist/generate`:
+  - `retrieval_mode="heuristic"`: section scoring by keywords
+  - `retrieval_mode="tree_search"`: Gemma4 picks `node_id` list from tree structure, then generation uses selected nodes
+  - falls back to deterministic checklist if model call/output fails
 - `/v1/checklist/verify`: deduplicates and enforces strict citation checks.
 - Important verify rule:
   - If request includes `items`, verification runs on provided `items`.
@@ -53,27 +63,34 @@
   - Output: ingest metadata (`page_count`, `word_count`, status)
   - Note: Windows path in JSON must use escaped backslashes or forward slashes.
 - `POST /v1/pageindex/build`
-  - Input: `manual_id`, `chunk_size_pages?`
-  - Output: section list with `section_id`, title, page range, summary.
+  - Input: `manual_id`, `chunk_size_pages?`, `provider?`, `force_rebuild?`
+  - Output: section list + provider metadata (`provider`, optional `doc_id`, optional `tree_node_count`).
 - `POST /v1/checklist/generate`
-  - Input: `manual_id`, `objective?`, `max_items?`, `strict_citations?`
-  - Output: `checklist_id`, generated checklist items, warnings.
+  - Input: `manual_id`, `objective?`, `max_items?`, `strict_citations?`, `retrieval_mode?`, `expert_rules?`
+  - Output: `checklist_id`, generated checklist items, warnings, `retrieval_mode`, `selected_node_ids`.
 - `POST /v1/checklist/verify`
   - Input: `manual_id`, `checklist_id?`, `strict_citations`, `items?`
   - Output: accepted/rejected counts, accepted items, rejected reasons.
 
 ## Data Flow Architecture (Current AI MVP)
 1. Ingest reads PDF pages with PyMuPDF and stores parsed text.
-2. PageIndex builder scans page text for heading-like lines to form section map.
-3. Generator selects candidate sections, prompts Gemma4 via DMR, parses JSON output.
-4. If model output is invalid/unavailable, deterministic fallback checklist is produced.
-5. Generated checklist is persisted as JSON with evidence fields.
-6. Verify enforces strict citation rules, removes duplicates, and stores verified output.
+2. Index builder runs in one of two providers:
+   - local heuristics, or
+   - PageIndex API tree indexing.
+3. Retrieval runs in one of two modes:
+   - heuristic section scoring, or
+   - local Gemma tree search selecting `node_id`s.
+4. Generator prompts Gemma4 with selected sections and parses JSON output.
+5. If model output is invalid/unavailable, deterministic fallback checklist is produced.
+6. Generated checklist is persisted as JSON with evidence fields + retrieval metadata.
+7. Verify enforces strict citation rules, removes duplicates, and stores verified output.
 
 ## Local Storage Layout (AI MVP)
 - `services/ai/storage/manuals/*.json`
 - `services/ai/storage/indexes/*.json`
 - `services/ai/storage/checklists/*.json`
+- `services/ai/storage/pageindex/*.doc.json` (doc_id mapping)
+- `services/ai/storage/pageindex/*.tree.json` (raw tree payload)
 
 ## Run Commands
 - API service:
@@ -93,4 +110,6 @@
 ## Environment Notes
 - DMR endpoint default: `http://localhost:12434/engines/v1`
 - DMR model default: `ai/gemma4:4B-Q4_K_XL`
+- PageIndex base URL default: `https://api.pageindex.ai`
+- Set `PAGEINDEX_API_KEY` to enable `provider="pageindex"`
 - AI env template is at `services/ai/.env.example`
