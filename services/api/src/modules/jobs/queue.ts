@@ -2,7 +2,7 @@ import { Queue, QueueEvents, type JobsOptions } from "bullmq";
 
 import { getRedisClient } from "../../db/redis.js";
 
-export const PIPELINE_QUEUE_NAME = "pipeline:checklist-generation";
+export const PIPELINE_QUEUE_NAME = "pipeline-checklist-generation";
 
 export interface ChecklistGenerationJobPayload {
     manualId: string;

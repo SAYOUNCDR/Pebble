@@ -11,7 +11,7 @@ export function HomePage(): React.JSX.Element {
 
     return (
         <main className="mx-auto w-full max-w-6xl px-4 py-10">
-            <section className="rounded-3xl border border-slate-200 bg-gradient-to-b from-white to-slate-100 p-8 shadow-sm">
+            <section className="rounded-3xl border border-slate-200 bg-linear-to-b from-white to-slate-100 p-8 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">React - Express - Python</p>
                 <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-900">Manual Checklist Builder</h1>
                 <p className="mt-3 max-w-2xl text-slate-600">
