@@ -37,9 +37,13 @@ function App() {
   const [manualName, setManualName] = useState('newiomanual')
   const [filePath, setFilePath] = useState('')
   const [chunkSizePages, setChunkSizePages] = useState(3)
+  const [indexProvider, setIndexProvider] = useState<'local' | 'pageindex'>('local')
+  const [forceRebuild, setForceRebuild] = useState(false)
   const [objective, setObjective] = useState('Extract preventive and safety maintenance checklist')
   const [maxItems, setMaxItems] = useState(20)
   const [strictCitations, setStrictCitations] = useState(true)
+  const [retrievalMode, setRetrievalMode] = useState<'heuristic' | 'tree_search'>('heuristic')
+  const [expertRules, setExpertRules] = useState('')
   const [verifyChecklistId, setVerifyChecklistId] = useState('')
 
   const [loading, setLoading] = useState<LoadingState>(initialLoadingState)
@@ -94,6 +98,8 @@ function App() {
       const response = await aiClient.buildIndex({
         manual_id: manualId.trim(),
         chunk_size_pages: chunkSizePages,
+        provider: indexProvider,
+        force_rebuild: forceRebuild,
       })
       setIndexResponse(response)
     } catch (error) {
@@ -113,6 +119,8 @@ function App() {
         objective: objective.trim(),
         max_items: maxItems,
         strict_citations: strictCitations,
+        retrieval_mode: retrievalMode,
+        expert_rules: expertRules.trim() || undefined,
       })
       setGenerateResponse(response)
       setVerifyChecklistId(response.checklist_id)
@@ -203,9 +211,21 @@ function App() {
         <article className="card">
           <div className="card-header">
             <h2>Step 2 - Build Index</h2>
-            <span className="chip">{indexResponse ? 'Done' : 'Pending'}</span>
+            <span className="chip">
+              {indexResponse ? `Done (${indexResponse.provider})` : `Pending (${indexProvider})`}
+            </span>
           </div>
           <form className="stack" onSubmit={runBuildIndex}>
+            <label className="field">
+              <span>Index Provider</span>
+              <select
+                value={indexProvider}
+                onChange={(event) => setIndexProvider(event.target.value as 'local' | 'pageindex')}
+              >
+                <option value="local">local (heuristic sections)</option>
+                <option value="pageindex">pageindex (cloud tree)</option>
+              </select>
+            </label>
             <label className="field">
               <span>Chunk Size (Pages)</span>
               <input
@@ -217,6 +237,14 @@ function App() {
                 required
               />
             </label>
+            <label className="inline-field">
+              <input
+                type="checkbox"
+                checked={forceRebuild}
+                onChange={(event) => setForceRebuild(event.target.checked)}
+              />
+              <span>Force re-upload/rebuild in PageIndex</span>
+            </label>
             <button className="button" type="submit" disabled={loading.index}>
               {loading.index ? 'Building...' : 'Run /v1/pageindex/build'}
             </button>
@@ -226,12 +254,33 @@ function App() {
         <article className="card">
           <div className="card-header">
             <h2>Step 3 - Generate Checklist</h2>
-            <span className="chip">{generateResponse ? 'Done' : 'Pending'}</span>
+            <span className="chip">
+              {generateResponse ? `Done (${generateResponse.retrieval_mode})` : `Pending (${retrievalMode})`}
+            </span>
           </div>
           <form className="stack" onSubmit={runGenerate}>
             <label className="field">
+              <span>Retrieval Mode</span>
+              <select
+                value={retrievalMode}
+                onChange={(event) => setRetrievalMode(event.target.value as 'heuristic' | 'tree_search')}
+              >
+                <option value="heuristic">heuristic (rank sections)</option>
+                <option value="tree_search">tree_search (LLM routes node_ids)</option>
+              </select>
+            </label>
+            <label className="field">
               <span>Objective</span>
               <textarea value={objective} onChange={(event) => setObjective(event.target.value)} rows={3} />
+            </label>
+            <label className="field">
+              <span>Expert Rules (optional)</span>
+              <textarea
+                value={expertRules}
+                onChange={(event) => setExpertRules(event.target.value)}
+                rows={4}
+                placeholder="If query mentions X, prioritize section Y..."
+              />
             </label>
             <label className="field">
               <span>Max Items</span>

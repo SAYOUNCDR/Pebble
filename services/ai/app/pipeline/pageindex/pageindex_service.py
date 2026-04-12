@@ -49,12 +49,16 @@ def _fixed_chunks(page_count: int, chunk_size: int) -> list[tuple[str, int]]:
     section_number = 1
     for page_start in range(1, page_count + 1, chunk_size):
         page_end = min(page_start + chunk_size - 1, page_count)
-        chunks.append((f"Section {section_number} (Pages {page_start}-{page_end})", page_start))
+        chunks.append(
+            (f"Section {section_number} (Pages {page_start}-{page_end})", page_start)
+        )
         section_number += 1
     return chunks
 
 
-def _collect_excerpt(pages: list[dict[str, object]], start_page: int, end_page: int) -> str:
+def _collect_excerpt(
+    pages: list[dict[str, object]], start_page: int, end_page: int
+) -> str:
     snippets: list[str] = []
     for page_number in range(start_page, end_page + 1):
         page = pages[page_number - 1]
@@ -66,7 +70,9 @@ def _collect_excerpt(pages: list[dict[str, object]], start_page: int, end_page: 
     return " ".join(snippets)[:900]
 
 
-def _build_local_sections(manual_data: dict[str, object], chunk_size_pages: int) -> list[dict[str, object]]:
+def _build_local_sections(
+    manual_data: dict[str, object], chunk_size_pages: int
+) -> list[dict[str, object]]:
     pages = manual_data.get("pages")
     if not isinstance(pages, list) or not pages:
         raise ValueError("Manual has no parsed pages. Run /v1/ingest first.")
@@ -140,7 +146,9 @@ def _count_tree_nodes(nodes: list[dict[str, object]]) -> int:
     return total
 
 
-async def _build_from_pageindex(payload: BuildIndexRequest, manual_data: dict[str, object]) -> BuildIndexResponse:
+async def _build_from_pageindex(
+    payload: BuildIndexRequest, manual_data: dict[str, object]
+) -> BuildIndexResponse:
     source_path_raw = str(manual_data.get("source_path", "")).strip()
     if not source_path_raw:
         raise ValueError("Manual source path missing. Run /v1/ingest first.")
@@ -171,20 +179,22 @@ async def _build_from_pageindex(payload: BuildIndexRequest, manual_data: dict[st
         write_json(doc_info_path, doc_info)
 
     deadline = datetime.now(UTC).timestamp() + settings.pageindex_poll_timeout_seconds
-    tree_payload: dict[str, object] | None = None
+    index_ready = False
 
     while datetime.now(UTC).timestamp() < deadline:
-        status_payload = await client.get_document(doc_id=doc_id, result_type="tree", summary=True)
+        status_payload = await client.get_document(doc_id=doc_id)
         status = str(status_payload.get("status", "")).lower()
         if status == "completed":
-            tree_payload = status_payload
+            index_ready = True
             break
         if status == "failed":
             raise ValueError("PageIndex tree generation failed for this document.")
         await asyncio.sleep(settings.pageindex_poll_interval_seconds)
 
-    if tree_payload is None:
+    if not index_ready:
         raise TimeoutError("Timed out waiting for PageIndex tree generation.")
+
+    tree_payload = await client.get_tree(doc_id=doc_id, summary=True)
 
     tree_result = tree_payload.get("result", [])
     if not isinstance(tree_result, list) or not tree_result:
@@ -231,7 +241,9 @@ async def build_pageindex(payload: BuildIndexRequest) -> BuildIndexResponse:
     if payload.provider == "pageindex":
         return await _build_from_pageindex(payload=payload, manual_data=manual_data)
 
-    sections = _build_local_sections(manual_data=manual_data, chunk_size_pages=payload.chunk_size_pages)
+    sections = _build_local_sections(
+        manual_data=manual_data, chunk_size_pages=payload.chunk_size_pages
+    )
     index_doc: dict[str, object] = {
         "manual_id": payload.manual_id,
         "manual_name": manual_data.get("manual_name", payload.manual_id),

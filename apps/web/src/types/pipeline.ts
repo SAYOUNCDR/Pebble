@@ -22,6 +22,8 @@ export interface IngestResponse {
 export interface BuildIndexRequest {
   manual_id: string
   chunk_size_pages?: number
+  provider?: 'local' | 'pageindex'
+  force_rebuild?: boolean
 }
 
 export interface SectionOutline {
@@ -36,6 +38,9 @@ export interface BuildIndexResponse {
   manual_id: string
   section_count: number
   sections: SectionOutline[]
+  provider: 'local' | 'pageindex'
+  doc_id?: string | null
+  tree_node_count?: number | null
   status: 'indexed'
 }
 
@@ -64,6 +69,8 @@ export interface GenerateChecklistRequest {
   objective: string
   max_items: number
   strict_citations: boolean
+  retrieval_mode?: 'heuristic' | 'tree_search'
+  expert_rules?: string
 }
 
 export interface GenerateChecklistResponse {
@@ -72,6 +79,8 @@ export interface GenerateChecklistResponse {
   item_count: number
   items: ChecklistItem[]
   warnings: string[]
+  retrieval_mode: 'heuristic' | 'tree_search'
+  selected_node_ids: string[]
   status: 'generated'
 }
 
