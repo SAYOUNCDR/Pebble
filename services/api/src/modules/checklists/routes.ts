@@ -12,7 +12,12 @@ checklistsRouter.get("/:checklistId", requireAuth, async (request: Request, resp
         throw new HttpError("Unauthorized.", 401);
     }
 
-    const checklist = await ChecklistModel.findOne({ ownerUserId, checklistId: request.params.checklistId }).lean();
+    const checklistId = request.params.checklistId;
+    if (!checklistId) {
+        throw new HttpError("Checklist ID is required.", 400);
+    }
+
+    const checklist = await ChecklistModel.findOne({ ownerUserId, checklistId }).lean();
     if (!checklist) {
         throw new HttpError("Checklist not found.", 404);
     }

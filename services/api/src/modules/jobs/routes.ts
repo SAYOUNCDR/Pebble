@@ -41,13 +41,18 @@ jobsRouter.post("/generate", requireAuth, async (request: Request, response: Res
     });
 });
 
-jobsRouter.get("/:jobId", async (request: Request, response: Response) => {
+jobsRouter.get("/:jobId", requireAuth, async (request: Request, response: Response) => {
     const ownerUserId = request.authUser?.sub;
     if (!ownerUserId) {
         throw new HttpError("Unauthorized.", 401);
     }
 
-    const jobId = request.params.jobId;
+    const rawJobId = request.params.jobId;
+    const jobId = Array.isArray(rawJobId) ? rawJobId[0] : rawJobId;
+    if (!jobId) {
+        throw new HttpError("Job ID is required.", 400);
+    }
+
     const persisted = await JobModel.findOne({ queueJobId: jobId, ownerUserId }).lean();
     if (!persisted) {
         throw new HttpError("Job not found.", 404);

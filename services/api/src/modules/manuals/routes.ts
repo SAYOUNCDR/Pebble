@@ -85,7 +85,12 @@ manualsRouter.get("/:manualId", requireAuth, async (request: Request, response: 
         throw new HttpError("Unauthorized.", 401);
     }
 
-    const manual = await ManualModel.findOne({ ownerUserId, manualId: request.params.manualId }).lean();
+    const manualId = request.params.manualId;
+    if (!manualId) {
+        throw new HttpError("Manual ID is required.", 400);
+    }
+
+    const manual = await ManualModel.findOne({ ownerUserId, manualId }).lean();
     if (!manual) {
         throw new HttpError("Manual not found.", 404);
     }
@@ -99,7 +104,12 @@ manualsRouter.post("/:manualId/checklists/generate", requireAuth, async (request
         throw new HttpError("Unauthorized.", 401);
     }
 
-    const manual = await ManualModel.findOne({ ownerUserId, manualId: request.params.manualId }).lean();
+    const manualId = request.params.manualId;
+    if (!manualId) {
+        throw new HttpError("Manual ID is required.", 400);
+    }
+
+    const manual = await ManualModel.findOne({ ownerUserId, manualId }).lean();
     if (!manual) {
         throw new HttpError("Manual not found.", 404);
     }
