@@ -10,6 +10,9 @@ interface ChecklistItemView {
     title: string
     details?: string
     citation?: string
+    priority?: string
+    frequency?: string
+    safetyTag?: string
 }
 
 function normalizeChecklistItem(item: unknown): ChecklistItemView {
@@ -19,10 +22,35 @@ function normalizeChecklistItem(item: unknown): ChecklistItemView {
 
     if (typeof item === 'object' && item !== null) {
         const source = item as Record<string, unknown>
+        const evidence = (typeof source.evidence === 'object' && source.evidence !== null)
+            ? (source.evidence as Record<string, unknown>)
+            : null
+
+        const excerpt = typeof evidence?.excerpt === 'string' ? evidence.excerpt : undefined
+        const pageNumber = typeof evidence?.page_number === 'number' ? evidence.page_number : undefined
+        const sectionId = typeof evidence?.section_id === 'string' ? evidence.section_id : undefined
+
+        const citationParts: string[] = []
+        if (typeof pageNumber === 'number') {
+            citationParts.push(`Page ${pageNumber}`)
+        }
+        if (sectionId) {
+            citationParts.push(`Section ${sectionId}`)
+        }
+
         return {
-            title: String(source.title ?? source.name ?? source.label ?? 'Checklist item'),
-            details: typeof source.description === 'string' ? source.description : undefined,
-            citation: typeof source.citation === 'string' ? source.citation : undefined,
+            title: String(source.text ?? source.title ?? source.name ?? source.label ?? 'Checklist item'),
+            details:
+                typeof source.description === 'string'
+                    ? source.description
+                    : excerpt,
+            citation:
+                typeof source.citation === 'string'
+                    ? source.citation
+                    : (citationParts.length > 0 ? citationParts.join(' | ') : undefined),
+            priority: typeof source.priority === 'string' ? source.priority : undefined,
+            frequency: typeof source.frequency === 'string' ? source.frequency : undefined,
+            safetyTag: typeof source.safety_tag === 'string' ? source.safety_tag : undefined,
         }
     }
 
@@ -78,6 +106,15 @@ export function ChecklistDetailPage(): React.JSX.Element {
                             return (
                                 <article key={`${view.title}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                                     <h3 className="font-medium text-slate-900">{index + 1}. {view.title}</h3>
+                                    {(view.priority || view.frequency || view.safetyTag) ? (
+                                        <p className="mt-1 text-xs text-slate-500">
+                                            {view.priority ? `Priority: ${view.priority}` : null}
+                                            {view.priority && view.frequency ? ' | ' : null}
+                                            {view.frequency ? `Frequency: ${view.frequency}` : null}
+                                            {(view.priority || view.frequency) && view.safetyTag ? ' | ' : null}
+                                            {view.safetyTag ? `Safety: ${view.safetyTag}` : null}
+                                        </p>
+                                    ) : null}
                                     {view.details ? <p className="mt-1 text-sm text-slate-700">{view.details}</p> : null}
                                     {view.citation ? <p className="mt-2 text-xs text-slate-500">Citation: {view.citation}</p> : null}
                                 </article>
