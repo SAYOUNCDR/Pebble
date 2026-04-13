@@ -1,5 +1,6 @@
 import { apiRequest } from '../../lib/http'
 import { getApiBaseUrl } from '../../lib/http'
+import { getActiveTeamId } from '../../lib/team-scope'
 import type { Checklist, CreateManualPayload, ExportArtifact, GenerateChecklistPayload, Job, Manual, QueueStatus } from './types'
 
 export const pipelineApi = {
@@ -73,10 +74,12 @@ export const pipelineApi = {
         }),
 
     downloadExportPdf: async (token: string, exportId: string): Promise<Blob> => {
+        const activeTeamId = getActiveTeamId()
         const response = await fetch(`${getApiBaseUrl()}/api/exports/${encodeURIComponent(exportId)}/file`, {
             method: 'GET',
             headers: {
                 Authorization: `Bearer ${token}`,
+                ...(activeTeamId ? { 'x-team-id': activeTeamId } : {}),
             },
         })
 
