@@ -21,9 +21,11 @@ export function SiteHeader(): React.JSX.Element {
                     </Link>
 
                     <nav className="flex items-center gap-2">
-                        <Link to="/" className="rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 hover:text-slate-900">
-                            Home
-                        </Link>
+                        {!user ? (
+                            <Link to="/" className="rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 hover:text-slate-900">
+                                Home
+                            </Link>
+                        ) : null}
                         {user ? (
                             <>
                                 <Link
