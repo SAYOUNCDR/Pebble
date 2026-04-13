@@ -50,6 +50,27 @@ export interface QueueStatus {
     finishedOn?: number | null
 }
 
+export interface ChecklistItemEvidence {
+    manual_id?: string
+    section_id?: string
+    page_number?: number
+    excerpt?: string
+}
+
+export interface ChecklistItem {
+    item_id?: string
+    text?: string
+    title?: string
+    status?: 'todo' | 'in_progress' | 'done' | 'blocked'
+    assignee?: string | null
+    notes?: string | null
+    priority?: string
+    frequency?: string
+    safety_tag?: string
+    evidence?: ChecklistItemEvidence
+    [key: string]: unknown
+}
+
 export interface Checklist {
     checklistId: string
     ownerUserId: string
@@ -59,7 +80,20 @@ export interface Checklist {
     retrievalMode: RetrievalMode
     warnings: string[]
     selectedNodeIds: string[]
-    items: unknown[]
+    items: ChecklistItem[]
+    createdAt: string
+    updatedAt: string
+}
+
+export interface ExportArtifact {
+    exportId: string
+    ownerUserId: string
+    checklistId: string
+    format: 'pdf'
+    status: 'ready' | 'failed'
+    fileName: string
+    filePath: string
+    downloadPath: string
     createdAt: string
     updatedAt: string
 }

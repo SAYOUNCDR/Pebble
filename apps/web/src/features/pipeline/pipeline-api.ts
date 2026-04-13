@@ -1,5 +1,6 @@
 import { apiRequest } from '../../lib/http'
-import type { Checklist, CreateManualPayload, GenerateChecklistPayload, Job, Manual, QueueStatus } from './types'
+import { getApiBaseUrl } from '../../lib/http'
+import type { Checklist, CreateManualPayload, ExportArtifact, GenerateChecklistPayload, Job, Manual, QueueStatus } from './types'
 
 export const pipelineApi = {
     listManuals: (token: string) =>
@@ -51,4 +52,38 @@ export const pipelineApi = {
             method: 'GET',
             headers: { Authorization: `Bearer ${token}` },
         }),
+
+    patchChecklistItem: (token: string, checklistId: string, itemId: string, payload: { status?: 'todo' | 'in_progress' | 'done' | 'blocked'; assignee?: string | null; notes?: string | null }) =>
+        apiRequest<{ checklist: Checklist }>(`/api/checklists/${encodeURIComponent(checklistId)}/items/${encodeURIComponent(itemId)}`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${token}` },
+            body: JSON.stringify(payload),
+        }),
+
+    exportChecklistPdf: (token: string, checklistId: string) =>
+        apiRequest<{ status: 'ready'; exportId: string }>(`/api/checklists/${encodeURIComponent(checklistId)}/export/pdf`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    getExport: (token: string, exportId: string) =>
+        apiRequest<{ export: ExportArtifact }>(`/api/exports/${encodeURIComponent(exportId)}`, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
+    downloadExportPdf: async (token: string, exportId: string): Promise<Blob> => {
+        const response = await fetch(`${getApiBaseUrl()}/api/exports/${encodeURIComponent(exportId)}/file`, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to download export (${response.status}).`)
+        }
+
+        return await response.blob()
+    },
 }

@@ -9,8 +9,10 @@ import { notFoundHandler } from "./middleware/notFound.js";
 import { aiRouter } from "./modules/ai/routes.js";
 import { authRouter } from "./modules/auth/routes.js";
 import { checklistsRouter } from "./modules/checklists/routes.js";
+import { exportsRouter } from "./modules/exports/routes.js";
 import { jobsRouter } from "./modules/jobs/routes.js";
 import { manualsRouter } from "./modules/manuals/routes.js";
+import { teamsRouter } from "./modules/teams/routes.js";
 
 export const app = express();
 
@@ -54,6 +56,8 @@ app.use("/api/auth", authRouter);
 app.use("/api/jobs", jobsRouter);
 app.use("/api/manuals", manualsRouter);
 app.use("/api/checklists", checklistsRouter);
+app.use("/api/exports", exportsRouter);
+app.use("/api/teams", teamsRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
