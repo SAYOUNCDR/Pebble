@@ -182,3 +182,14 @@ npm run worker:dev
 - Export flow (`/api/exports`)
 - Team/workspace boundaries
 - More integration and e2e tests
+
+## Documentation
+
+- Docs index: `docs/README.md`
+- Architecture: `docs/architecture.md`
+- Setup guide: `docs/setup-local.md`
+- API reference: `docs/api-reference.md`
+- Operations runbook: `docs/operations-runbook.md`
+- Troubleshooting: `docs/troubleshooting.md`
+- Roadmap status: `docs/roadmap-status.md`
+- Environment templates: `infra/env/README.md`
