@@ -2,6 +2,7 @@ import { Schema, model } from "mongoose";
 
 export interface ManualDocument {
     ownerUserId: string;
+    teamId?: string;
     manualId: string;
     manualName: string;
     originalFileName: string;
@@ -15,6 +16,7 @@ export interface ManualDocument {
 const manualSchema = new Schema<ManualDocument>(
     {
         ownerUserId: { type: String, required: true, index: true },
+        teamId: { type: String, index: true },
         manualId: { type: String, required: true, unique: true, index: true },
         manualName: { type: String, required: true },
         originalFileName: { type: String, required: true },

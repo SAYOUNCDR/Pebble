@@ -12,6 +12,7 @@ export type JobStatus =
 export interface JobDocument {
     queueJobId: string;
     ownerUserId: string;
+    teamId?: string;
     manualId: string;
     status: JobStatus;
     provider: "local" | "pageindex";
@@ -29,6 +30,7 @@ const jobSchema = new Schema<JobDocument>(
     {
         queueJobId: { type: String, required: true, unique: true, index: true },
         ownerUserId: { type: String, required: true, index: true },
+        teamId: { type: String, index: true },
         manualId: { type: String, required: true, index: true },
         status: {
             type: String,

@@ -91,7 +91,7 @@ async function writeChecklistPdf(outputFilePath: string, checklist: ChecklistDoc
     });
 }
 
-export async function createChecklistPdfExport(ownerUserId: string, checklist: ChecklistDocument): Promise<{ exportId: string; status: "ready" }> {
+export async function createChecklistPdfExport(ownerUserId: string, checklist: ChecklistDocument, teamId?: string): Promise<{ exportId: string; status: "ready" }> {
     const exportId = `exp-${uuidv4().slice(0, 12)}`;
     const fileName = `${checklist.checklistId}.pdf`;
     const filePath = path.resolve(process.cwd(), "storage", "exports", `${exportId}-${fileName}`);
@@ -101,6 +101,7 @@ export async function createChecklistPdfExport(ownerUserId: string, checklist: C
     await ExportModel.create({
         exportId,
         ownerUserId,
+        ...(teamId ? { teamId } : {}),
         checklistId: checklist.checklistId,
         format: "pdf",
         status: "ready",

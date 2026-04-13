@@ -165,16 +165,16 @@ This plan also lists what is already done, what is pending, and the exact next i
 - [x] Implement core Express modules/routes (auth/manuals/jobs/checklists read).
 - [x] Wire Express to Python service with typed internal client.
 - [x] Migrate React from direct Python calls to Express API.
-- [ ] Add checklist editing persistence through Express (`PATCH` routes + UI wiring).
-- [ ] Add PDF export flow (`exports` module + UI wiring).
-- [ ] Implement team/workspace boundaries and authorization model.
+- [x] Add checklist editing persistence through Express (`PATCH` routes + UI wiring).
+- [x] Add PDF export flow (`exports` module + UI wiring).
+- [x] Implement team/workspace boundaries and authorization model (team routes + scoped access by `x-team-id`).
 
 ### Cleanup tasks
 
 - [x] Remove/deprecate `apps/web/src/api/aiClient.ts` direct Python calls.
 - [x] Replace `VITE_AI_BASE_URL` usage with Express API base URL.
 - [x] Update README with final architecture and run instructions.
-- [ ] Consolidate shared contracts into `packages/shared-types` (currently docs only).
+- [x] Consolidate shared contracts into `packages/shared-types`.
 
 ---
 
@@ -183,7 +183,7 @@ This plan also lists what is already done, what is pending, and the exact next i
 - Frontend makes **zero** direct calls to Python.
 - All user-facing calls go through Express `/api/*`.
 - Manual upload + async generation + checklist fetch works end-to-end.
-- Checklist edit/update is still pending.
+- Checklist edit/update works for item-level status, assignee, and notes.
 - Express persists manuals/jobs/checklists in MongoDB.
 - Job states are visible and accurate.
 - Python remains the AI engine only (internal service).
@@ -196,9 +196,6 @@ This plan also lists what is already done, what is pending, and the exact next i
 
 ## 8) Execution Order (Recommended Now)
 
-1. Implement checklist edit endpoints (`PATCH /api/checklists/:checklistId`, `PATCH /api/checklists/:checklistId/items/:itemId`).
-2. Add checklist edit UI interactions (status/notes/assignee update).
-3. Implement export module (`POST /api/checklists/:checklistId/export/pdf`, `GET /api/exports/:exportId`).
-4. Add export UI flow (generate/download artifact).
-5. Implement team/workspace boundaries and authorization checks.
-6. Add integration and e2e tests for upload -> generate -> verify -> edit -> export.
+1. Expand team/workspace usage in frontend (team selector + `x-team-id` propagation).
+2. Deepen route-level policies for cross-team collaboration workflows.
+3. Increase automated coverage depth for full upload -> generate -> verify -> edit -> export flow.

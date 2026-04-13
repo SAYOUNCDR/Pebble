@@ -12,6 +12,7 @@ export interface ChecklistGenerationJobPayload {
     retrievalMode: "heuristic" | "tree_search";
     strictCitations: boolean;
     enqueuedByUserId: string;
+    teamId?: string;
 }
 
 const lowMemoryJobOptions: JobsOptions = {
