@@ -123,6 +123,10 @@ def _build_context(manual_name: str, sections: list[dict[str, object]]) -> str:
 def _fallback_reply(
     manual_name: str, message: str, sections: list[dict[str, object]]
 ) -> str:
+    assistant_intro = (
+        "I’m Pebble, your manual helper for checklist planning and manual Q&A.\n"
+        "I can help with maintenance manuals, service guides, and technical walkthroughs.\n\n"
+    )
     section_titles = [
         str(section.get("title", "")).strip()
         for section in sections[:3]
@@ -131,21 +135,21 @@ def _fallback_reply(
     if "checklist" in message.lower() or "generate" in message.lower():
         if section_titles:
             return (
-                "Summary:\n"
+                assistant_intro + "Summary:\n"
                 f'I can help generate a checklist for "{manual_name}".\n\n'
                 "Key sections:\n"
                 + "\n".join(f"- {title}" for title in section_titles)
                 + "\n\nNext step:\nUse New Checklist to create a structured version from these sections."
             )
         return (
-            "Summary:\n"
+            assistant_intro + "Summary:\n"
             f'I can help generate a checklist for "{manual_name}".\n\n'
             "Next step:\nUse the New Checklist button to build one from the manual."
         )
 
     if section_titles:
         return (
-            "Summary:\n"
+            assistant_intro + "Summary:\n"
             f'I found relevant sections in "{manual_name}".\n\n'
             "Relevant sections:\n"
             + "\n".join(f"- {title}" for title in section_titles)
@@ -153,9 +157,12 @@ def _fallback_reply(
         )
 
     return (
-        "Summary:\n"
-        f'I’m looking at "{manual_name}".\n\n'
-        "Next step:\nAsk a more specific question or generate a checklist to structure the manual content."
+        assistant_intro + "Summary:\n"
+        f'I’m looking at "{manual_name}", but I could not find a direct manual citation for that request.\n\n'
+        "General guidance:\n"
+        "- I can still give you a practical manual-based answer based on common field practice.\n"
+        "- If you want the strict manual-backed version, ask a more specific question or point me to a section.\n\n"
+        "Next step:\nAsk me for a checklist, a quick explanation, or a general best-practice answer."
     )
 
 
@@ -239,11 +246,13 @@ async def query_chat(payload: ChatQueryRequest) -> ChatQueryResponse:
                     {
                         "role": "system",
                         "content": (
-                            "You answer questions about a maintenance manual. Use only the provided context. "
+                            "You are Pebble, a polished manual helper for checklist planning and Q&A. "
+                            "You support maintenance manuals, service guides, and technical handbooks, not just maintenance teams. "
+                            "Use the provided context first, but if the manual does not contain enough detail, provide a short general-guidance answer and clearly label it as general guidance. "
                             "Return valid JSON with keys reply and suggested_checklist_payload. "
                             "The reply value must be plain text with short headings, blank lines, and bullet points or numbered lists. "
                             "Do not use markdown bold markers, markdown tables, or asterisks for emphasis. "
-                            "Keep the answer concise, readable, and enterprise-style."
+                            "Keep the answer concise, readable, confident, and a little cool."
                         ),
                     },
                     {
