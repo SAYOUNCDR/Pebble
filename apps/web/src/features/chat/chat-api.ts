@@ -5,6 +5,7 @@ export interface ChatMessage {
     content: string
     timestamp: number
     suggestedChecklistPayload?: {
+        checklistName?: string
         objective: string
         maxItems: number
         provider: 'local' | 'pageindex'

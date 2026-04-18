@@ -4,7 +4,11 @@ from uuid import uuid4
 
 from app.config import settings
 from app.llm.dmr_client import DMRClient
-from app.models.schemas import ChecklistItem, GenerateChecklistRequest, GenerateChecklistResponse
+from app.models.schemas import (
+    ChecklistItem,
+    GenerateChecklistRequest,
+    GenerateChecklistResponse,
+)
 from app.pipeline.common import (
     checklist_path,
     index_path,
@@ -25,7 +29,15 @@ def _normalize_priority(value: str) -> str:
 
 def _normalize_frequency(value: str) -> str:
     cleaned = value.strip().lower()
-    known = {"daily", "weekly", "monthly", "quarterly", "yearly", "before_operation", "as_needed"}
+    known = {
+        "daily",
+        "weekly",
+        "monthly",
+        "quarterly",
+        "yearly",
+        "before_operation",
+        "as_needed",
+    }
     return cleaned if cleaned in known else "as_needed"
 
 
@@ -47,7 +59,16 @@ def _score_section(section: dict[str, object]) -> int:
     summary = str(section.get("summary", "")).lower()
     haystack = f"{title} {summary}"
     score = 0
-    for keyword in ("maintenance", "inspect", "inspection", "check", "replace", "service", "safety", "warning"):
+    for keyword in (
+        "maintenance",
+        "inspect",
+        "inspection",
+        "check",
+        "replace",
+        "service",
+        "safety",
+        "warning",
+    ):
         if keyword in haystack:
             score += 2
     if "procedure" in haystack or "step" in haystack:
@@ -55,13 +76,17 @@ def _score_section(section: dict[str, object]) -> int:
     return score
 
 
-def _pick_candidate_sections(sections: list[dict[str, object]], limit: int = 8) -> list[dict[str, object]]:
+def _pick_candidate_sections(
+    sections: list[dict[str, object]], limit: int = 8
+) -> list[dict[str, object]]:
     scored = sorted(sections, key=_score_section, reverse=True)
     candidates = scored[:limit]
     return candidates if candidates else sections[:limit]
 
 
-def _sections_to_tree_nodes(sections: list[dict[str, object]]) -> list[dict[str, object]]:
+def _sections_to_tree_nodes(
+    sections: list[dict[str, object]],
+) -> list[dict[str, object]]:
     tree_nodes: list[dict[str, object]] = []
     for section in sections:
         tree_nodes.append(
@@ -76,7 +101,9 @@ def _sections_to_tree_nodes(sections: list[dict[str, object]]) -> list[dict[str,
     return tree_nodes
 
 
-def _build_prompt(manual_name: str, objective: str, sections: list[dict[str, object]], max_items: int) -> str:
+def _build_prompt(
+    manual_name: str, objective: str, sections: list[dict[str, object]], max_items: int
+) -> str:
     section_block = "\n".join(
         f"- {section['section_id']} | {section['title']} | pages {section['page_start']}-{section['page_end']} | {section['summary'][:220]}"
         for section in sections
@@ -86,12 +113,31 @@ def _build_prompt(manual_name: str, objective: str, sections: list[dict[str, obj
         f"Manual name: {manual_name}\n"
         f"Objective: {objective}\n"
         f"Max items: {max_items}\n"
+        "Return a checklist_name along with the items.\n"
         "Use only the evidence from provided sections.\n"
         "Return only valid JSON in this shape:\n"
-        '{"items":[{"text":"...","priority":"must_do|optional","frequency":"daily|weekly|monthly|before_operation|as_needed","safety_tag":"safety|standard","confidence":0.0,"section_id":"sec-001","page_number":1,"excerpt":"..."}]}\n'
+        '{"checklist_name":"...","items":[{"text":"...","priority":"must_do|optional","frequency":"daily|weekly|monthly|before_operation|as_needed","safety_tag":"safety|standard","confidence":0.0,"section_id":"sec-001","page_number":1,"excerpt":"..."}]}\n'
         "Candidate sections:\n"
         f"{section_block}"
     )
+
+
+def _default_checklist_name(
+    manual_name: str, objective: str, requested_name: str | None = None
+) -> str:
+    if requested_name and requested_name.strip():
+        return requested_name.strip()
+
+    lower_objective = objective.lower()
+    if "safety" in lower_objective:
+        return "Safety Compliance Checklist"
+    if "operations" in lower_objective:
+        return "Operations Checklist"
+    if "maintenance" in lower_objective:
+        return "Maintenance Checklist"
+
+    base_name = manual_name.strip() if manual_name.strip() else "Checklist"
+    return f"{base_name} Checklist"
 
 
 def _extract_json_payload(text: str) -> dict[str, object] | None:
@@ -118,9 +164,17 @@ def _fallback_items(
         excerpt = str(section.get("summary", "")).strip()[:220]
         page_start = int(section.get("page_start", 1))
         lowered = title.lower()
-        priority = "must_do" if any(key in lowered for key in ("safety", "warning", "inspect", "check")) else "optional"
-        frequency = "monthly" if "replace" in lowered or "service" in lowered else "weekly"
-        safety_tag = "safety" if "safety" in lowered or "warning" in lowered else "standard"
+        priority = (
+            "must_do"
+            if any(key in lowered for key in ("safety", "warning", "inspect", "check"))
+            else "optional"
+        )
+        frequency = (
+            "monthly" if "replace" in lowered or "service" in lowered else "weekly"
+        )
+        safety_tag = (
+            "safety" if "safety" in lowered or "warning" in lowered else "standard"
+        )
         items.append(
             {
                 "text": f"Review and execute: {title}",
@@ -160,11 +214,17 @@ def _coerce_llm_items(
         if page_number < page_start or page_number > page_end:
             page_number = page_start
 
-        excerpt = str(raw.get("excerpt", "")).strip() or str(section.get("summary", "")).strip()[:220]
+        excerpt = (
+            str(raw.get("excerpt", "")).strip()
+            or str(section.get("summary", "")).strip()[:220]
+        )
         if not excerpt:
             excerpt = f"Evidence from {section.get('title', 'manual section')}."
 
-        text = str(raw.get("text", "")).strip() or f"Review section: {section.get('title', 'manual section')}"
+        text = (
+            str(raw.get("text", "")).strip()
+            or f"Review section: {section.get('title', 'manual section')}"
+        )
         checklist.append(
             ChecklistItem(
                 item_id=f"item-{uuid4().hex[:10]}",
@@ -198,9 +258,15 @@ def _safe_json_parse(text: str) -> list[dict[str, object]]:
     return clean_items
 
 
-async def generate_checklist(payload: GenerateChecklistRequest) -> GenerateChecklistResponse:
+async def generate_checklist(
+    payload: GenerateChecklistRequest,
+) -> GenerateChecklistResponse:
     manual_data = read_json(manual_path(payload.manual_id))
     index_data = read_json(index_path(payload.manual_id))
+    manual_name = str(manual_data.get("manual_name", payload.manual_id))
+    checklist_name = _default_checklist_name(
+        manual_name, payload.objective, payload.checklist_name
+    )
 
     sections = index_data.get("sections")
     if not isinstance(sections, list) or not sections:
@@ -229,24 +295,34 @@ async def generate_checklist(payload: GenerateChecklistRequest) -> GenerateCheck
             max_nodes=min(max(payload.max_items, 1), 12),
             expert_rules=payload.expert_rules,
         )
-        candidate_sections = tree_nodes_to_sections(tree_nodes=tree_nodes, node_ids=selected_node_ids)
+        candidate_sections = tree_nodes_to_sections(
+            tree_nodes=tree_nodes, node_ids=selected_node_ids
+        )
         if not candidate_sections:
             candidate_sections = _pick_candidate_sections(sections=sections, limit=10)
-            selected_node_ids = [str(section.get("section_id", "")) for section in candidate_sections]
-            warnings_seed = "Tree search returned no section candidates. Heuristic fallback used."
+            selected_node_ids = [
+                str(section.get("section_id", "")) for section in candidate_sections
+            ]
+            warnings_seed = (
+                "Tree search returned no section candidates. Heuristic fallback used."
+            )
         else:
             warnings_seed = f"Tree search routing note: {routing_note}"
     else:
         candidate_sections = _pick_candidate_sections(sections=sections, limit=10)
-        selected_node_ids = [str(section.get("section_id", "")) for section in candidate_sections]
+        selected_node_ids = [
+            str(section.get("section_id", "")) for section in candidate_sections
+        ]
         warnings_seed = ""
 
     strict_citations = (
-        payload.strict_citations if payload.strict_citations is not None else settings.strict_citations_default
+        payload.strict_citations
+        if payload.strict_citations is not None
+        else settings.strict_citations_default
     )
 
     prompt = _build_prompt(
-        manual_name=str(manual_data.get("manual_name", payload.manual_id)),
+        manual_name=manual_name,
         objective=payload.objective,
         sections=candidate_sections,
         max_items=payload.max_items,
@@ -259,14 +335,19 @@ async def generate_checklist(payload: GenerateChecklistRequest) -> GenerateCheck
     try:
         model_output = await dmr_client.chat(
             messages=[
-                {"role": "system", "content": "Return strictly valid JSON with checklist items."},
+                {
+                    "role": "system",
+                    "content": "Return strictly valid JSON with checklist items.",
+                },
                 {"role": "user", "content": prompt},
             ],
             temperature=0.1,
         )
         generated_raw_items = _safe_json_parse(model_output)
         if not generated_raw_items:
-            warnings.append("LLM response was not valid JSON. Fallback generation used.")
+            warnings.append(
+                "LLM response was not valid JSON. Fallback generation used."
+            )
     except Exception as error:  # noqa: BLE001
         warnings.append(f"DMR call failed. Fallback generation used. Reason: {error}")
 
@@ -285,12 +366,15 @@ async def generate_checklist(payload: GenerateChecklistRequest) -> GenerateCheck
     )
 
     if strict_citations:
-        checklist_items = [item for item in checklist_items if item.evidence.excerpt.strip()]
+        checklist_items = [
+            item for item in checklist_items if item.evidence.excerpt.strip()
+        ]
 
     checklist_id = f"chk-{uuid4().hex[:12]}"
     checklist_doc: dict[str, object] = {
         "manual_id": payload.manual_id,
         "checklist_id": checklist_id,
+        "checklist_name": checklist_name,
         "created_at": datetime.now(UTC).isoformat(),
         "strict_citations": strict_citations,
         "objective": payload.objective,
@@ -304,6 +388,7 @@ async def generate_checklist(payload: GenerateChecklistRequest) -> GenerateCheck
     return GenerateChecklistResponse(
         manual_id=payload.manual_id,
         checklist_id=checklist_id,
+        checklist_name=checklist_name,
         item_count=len(checklist_items),
         items=checklist_items,
         warnings=warnings,

@@ -11,6 +11,7 @@ export interface ChecklistBuilderModalProps {
     onGenerate: (payload: GenerateChecklistPayload) => Promise<void>
     loading?: boolean
     suggestedPayload?: Partial<GenerateChecklistPayload>
+    manualName?: string
 }
 
 export function ChecklistBuilderModal({
@@ -19,8 +20,11 @@ export function ChecklistBuilderModal({
     onGenerate,
     loading = false,
     suggestedPayload,
+    manualName,
 }: ChecklistBuilderModalProps): React.JSX.Element | null {
+    const suggestedChecklistName = suggestedPayload?.checklistName ?? (manualName ? `${manualName} Checklist` : '')
     const [objective, setObjective] = useState(suggestedPayload?.objective ?? 'Generate a practical operations checklist.')
+    const [checklistName, setChecklistName] = useState(suggestedChecklistName)
     const [maxItems, setMaxItems] = useState(suggestedPayload?.maxItems ?? 20)
     const [provider, setProvider] = useState<Provider>(suggestedPayload?.provider ?? 'local')
     const [retrievalMode, setRetrievalMode] = useState<RetrievalMode>(suggestedPayload?.retrievalMode ?? 'heuristic')
@@ -35,6 +39,7 @@ export function ChecklistBuilderModal({
 
         try {
             await onGenerate({
+                checklistName: checklistName.trim() || undefined,
                 objective: objective.trim(),
                 maxItems,
                 provider,
@@ -57,6 +62,17 @@ export function ChecklistBuilderModal({
                     {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-700">{error}</p>}
 
                     <form onSubmit={onSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="checklistName">Checklist Name</Label>
+                            <Input
+                                id="checklistName"
+                                value={checklistName}
+                                onChange={(e) => setChecklistName(e.target.value)}
+                                placeholder="Boiler Safety Checklist"
+                            />
+                            <p className="text-xs text-slate-500">A friendly name that will appear in the sidebar and checklist pages.</p>
+                        </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="objective">Objective</Label>
                             <textarea

@@ -188,7 +188,7 @@ export function ChecklistDetailPage(): React.JSX.Element {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Checklist {checklistId}</CardTitle>
+                    <CardTitle>{checklist?.checklistName ?? `Checklist ${checklistId}`}</CardTitle>
                     <CardDescription>{loading ? 'Loading...' : `${checklist?.itemCount ?? 0} item(s)`}</CardDescription>
                 </CardHeader>
                 <CardContent>

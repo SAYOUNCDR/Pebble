@@ -80,6 +80,7 @@ export interface ChatResponse {
     manual_id: string;
     reply: string;
     suggested_checklist_payload?: {
+        checklist_name?: string;
         objective: string;
         max_items: number;
         provider: "local" | "pageindex";
@@ -101,6 +102,7 @@ export interface PipelineRunInput {
     manualId: string;
     manualName: string;
     filePath: string;
+    checklistName?: string;
     provider: "local" | "pageindex";
     objective: string;
     maxItems: number;
@@ -113,6 +115,7 @@ export interface PipelineRunResult {
     index: unknown;
     generate: {
         checklist_id?: string;
+        checklist_name?: string;
         [key: string]: unknown;
     };
     verify: unknown;
@@ -132,12 +135,14 @@ export async function runFullPipeline(input: PipelineRunInput): Promise<Pipeline
 
     const generateResponse = (await generateChecklist({
         manual_id: input.manualId,
+        checklist_name: input.checklistName,
         objective: input.objective,
         max_items: input.maxItems,
         strict_citations: input.strictCitations,
         retrieval_mode: input.retrievalMode,
     })) as {
         checklist_id?: string;
+        checklist_name?: string;
         [key: string]: unknown;
     };
 

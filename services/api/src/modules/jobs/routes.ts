@@ -11,6 +11,7 @@ export const jobsRouter = express.Router();
 
 const createJobSchema = z.object({
     manualId: z.string().min(3).max(80),
+    checklistName: z.string().trim().min(1).max(120).optional(),
     objective: z.string().min(3).max(400),
     maxItems: z.number().int().min(1).max(100).default(20),
     provider: z.enum(["local", "pageindex"]).default("local"),
@@ -39,8 +40,14 @@ jobsRouter.post("/generate", requireAuth, async (request: Request, response: Res
     }
 
     const created = await enqueueChecklistGenerationJob({
-        ...parsed.data,
+        manualId: parsed.data.manualId,
+        objective: parsed.data.objective,
+        maxItems: parsed.data.maxItems,
+        provider: parsed.data.provider,
+        retrievalMode: parsed.data.retrievalMode,
+        strictCitations: parsed.data.strictCitations,
         enqueuedByUserId: ownerUserId,
+        ...(parsed.data.checklistName ? { checklistName: parsed.data.checklistName } : {}),
     });
     response.status(202).json({
         status: "queued",

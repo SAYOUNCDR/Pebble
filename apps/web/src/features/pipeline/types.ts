@@ -19,6 +19,7 @@ export interface CreateManualPayload {
 }
 
 export interface GenerateChecklistPayload {
+    checklistName?: string
     objective: string
     maxItems: number
     provider: Provider
@@ -30,6 +31,7 @@ export interface Job {
     queueJobId: string
     ownerUserId: string
     manualId: string
+    checklistName?: string
     status: 'queued' | 'ingesting' | 'indexing' | 'generating' | 'verifying' | 'completed' | 'failed'
     provider: Provider
     retrievalMode: RetrievalMode
@@ -73,6 +75,7 @@ export interface ChecklistItem {
 
 export interface Checklist {
     checklistId: string
+    checklistName?: string
     ownerUserId: string
     manualId: string
     sourceJobId: string

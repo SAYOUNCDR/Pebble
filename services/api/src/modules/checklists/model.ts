@@ -2,6 +2,7 @@ import { Schema, model } from "mongoose";
 
 export interface ChecklistDocument {
     checklistId: string;
+    checklistName?: string;
     ownerUserId: string;
     manualId: string;
     sourceJobId: string;
@@ -19,6 +20,7 @@ export interface ChecklistDocument {
 const checklistSchema = new Schema<ChecklistDocument>(
     {
         checklistId: { type: String, required: true, unique: true, index: true },
+        checklistName: { type: String },
         ownerUserId: { type: String, required: true, index: true },
         manualId: { type: String, required: true, index: true },
         sourceJobId: { type: String, required: true, index: true },

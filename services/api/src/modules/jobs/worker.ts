@@ -35,6 +35,7 @@ export function startPipelineWorker(): Worker<ChecklistGenerationJobPayload> {
                 maxItems: job.data.maxItems,
                 retrievalMode: job.data.retrievalMode,
                 strictCitations: job.data.strictCitations,
+                ...(job.data.checklistName ? { checklistName: job.data.checklistName } : {}),
             });
 
             await setJobStatus(queueJobId, "generating");
@@ -52,6 +53,9 @@ export function startPipelineWorker(): Worker<ChecklistGenerationJobPayload> {
                 {
                     $set: {
                         checklistId,
+                        checklistName: String(
+                            pipelineResult.generate.checklist_name ?? job.data.checklistName ?? manual.manualName,
+                        ).trim(),
                         ownerUserId: job.data.enqueuedByUserId,
                         manualId: manual.manualId,
                         sourceJobId: queueJobId,

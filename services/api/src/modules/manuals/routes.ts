@@ -17,6 +17,7 @@ const createManualSchema = z.object({
 });
 
 const generateSchema = z.object({
+    checklistName: z.string().min(3).max(120).optional(),
     objective: z.string().min(3).max(400),
     maxItems: z.number().int().min(1).max(100).default(20),
     provider: z.enum(["local", "pageindex"]).default("local"),
@@ -121,8 +122,11 @@ manualsRouter.post("/:manualId/checklists/generate", requireAuth, async (request
         throw new HttpError("Invalid checklist generation payload.", 400, parsed.error.flatten());
     }
 
+    const normalizedChecklistName = parsed.data.checklistName?.trim() || `${manual.manualName.trim()} Checklist`;
+
     const jobEnqueue = await enqueueChecklistGenerationJob({
         manualId: manual.manualId,
+        checklistName: normalizedChecklistName,
         objective: parsed.data.objective,
         maxItems: parsed.data.maxItems,
         provider: parsed.data.provider,
@@ -135,6 +139,7 @@ manualsRouter.post("/:manualId/checklists/generate", requireAuth, async (request
         queueJobId: jobEnqueue.jobId,
         ownerUserId,
         manualId: manual.manualId,
+        checklistName: normalizedChecklistName,
         status: "queued",
         provider: parsed.data.provider,
         retrievalMode: parsed.data.retrievalMode,

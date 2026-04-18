@@ -137,6 +137,7 @@ export function ManualDetailPage(): React.JSX.Element {
                 onGenerate={onGenerateChecklist}
                 loading={generatingChecklist}
                 suggestedPayload={builderSuggestedPayload}
+                manualName={manual.manualName}
             />
         </main>
     )

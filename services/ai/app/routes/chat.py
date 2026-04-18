@@ -169,15 +169,20 @@ def _suggested_checklist_payload(message: str) -> ChatSuggestedChecklistPayload 
         return None
 
     objective = "Generate a practical checklist based on the manual."
+    checklist_name = "Checklist"
     if "safety" in lower_message:
         objective = "Generate a safety compliance checklist."
+        checklist_name = "Safety Compliance Checklist"
     elif "operations" in lower_message:
         objective = "Generate an operations checklist."
+        checklist_name = "Operations Checklist"
     elif "maintenance" in lower_message:
         objective = "Generate a maintenance checklist."
+        checklist_name = "Maintenance Checklist"
 
     return ChatSuggestedChecklistPayload(
         objective=objective,
+        checklist_name=checklist_name,
         max_items=20,
         provider="local",
         retrieval_mode="heuristic",

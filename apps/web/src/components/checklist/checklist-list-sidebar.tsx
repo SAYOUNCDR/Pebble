@@ -20,6 +20,27 @@ export function ChecklistListSidebar({ manualId, manual, onNewChecklist, onRefre
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
+    const getChecklistTitle = (checklist: Checklist) => {
+        if (typeof checklist.checklistName === 'string' && checklist.checklistName.trim().length > 0) {
+            return checklist.checklistName.trim()
+        }
+
+        const firstItem = (checklist.items.length > 0 ? checklist.items[0] : undefined) as unknown
+        if (typeof firstItem === 'string' && firstItem.trim().length > 0) {
+            return firstItem.trim()
+        }
+
+        if (typeof firstItem === 'object' && firstItem !== null) {
+            const source = firstItem as Record<string, unknown>
+            const candidate = String(source.title ?? source.text ?? source.name ?? '').trim()
+            if (candidate) {
+                return candidate
+            }
+        }
+
+        return `Checklist ${checklist.checklistId.slice(-6)}`
+    }
+
     const loadChecklists = useCallback(async () => {
         if (!token) return
 
@@ -87,10 +108,12 @@ export function ChecklistListSidebar({ manualId, manual, onNewChecklist, onRefre
                         <Link
                             key={checklist.checklistId}
                             to={`/checklists/${checklist.checklistId}`}
-                            className="block rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs hover:bg-slate-100"
+                            className="block rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs transition hover:border-slate-300 hover:bg-slate-100"
                         >
-                            <p className="font-semibold text-slate-900 truncate">{checklist.checklistId}</p>
-                            <p className="text-slate-600">{checklist.itemCount} items</p>
+                            <p className="text-sm font-semibold leading-5 text-slate-900">
+                                {getChecklistTitle(checklist)}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">{checklist.itemCount} item(s) · ID {checklist.checklistId}</p>
                         </Link>
                     ))}
                     <Button

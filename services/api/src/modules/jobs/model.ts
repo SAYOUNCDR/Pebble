@@ -13,6 +13,7 @@ export interface JobDocument {
     queueJobId: string;
     ownerUserId: string;
     manualId: string;
+    checklistName?: string;
     status: JobStatus;
     provider: "local" | "pageindex";
     retrievalMode: "heuristic" | "tree_search";
@@ -30,6 +31,7 @@ const jobSchema = new Schema<JobDocument>(
         queueJobId: { type: String, required: true, unique: true, index: true },
         ownerUserId: { type: String, required: true, index: true },
         manualId: { type: String, required: true, index: true },
+        checklistName: { type: String },
         status: {
             type: String,
             enum: ["queued", "ingesting", "indexing", "generating", "verifying", "completed", "failed"],

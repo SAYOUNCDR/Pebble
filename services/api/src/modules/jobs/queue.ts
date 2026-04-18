@@ -6,6 +6,7 @@ export const PIPELINE_QUEUE_NAME = "pipeline-checklist-generation";
 
 export interface ChecklistGenerationJobPayload {
     manualId: string;
+    checklistName?: string;
     objective: string;
     maxItems: number;
     provider: "local" | "pageindex";

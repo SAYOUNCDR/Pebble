@@ -26,6 +26,7 @@ class IngestResponse(BaseModel):
 
 class ChatSuggestedChecklistPayload(BaseModel):
     objective: str
+    checklist_name: str | None = None
     max_items: int = Field(default=20, ge=1, le=100)
     provider: Literal["local", "pageindex"] = "local"
     retrieval_mode: Literal["heuristic", "tree_search"] = "heuristic"
@@ -92,6 +93,7 @@ class ChecklistItem(BaseModel):
 
 class GenerateChecklistRequest(BaseModel):
     manual_id: str = Field(min_length=3, max_length=80)
+    checklist_name: str | None = None
     objective: str = "Extract preventive and safety maintenance checklist"
     max_items: int = Field(default=25, ge=1, le=100)
     strict_citations: bool | None = None
@@ -102,6 +104,7 @@ class GenerateChecklistRequest(BaseModel):
 class GenerateChecklistResponse(BaseModel):
     manual_id: str
     checklist_id: str
+    checklist_name: str
     item_count: int
     items: list[ChecklistItem]
     warnings: list[str] = Field(default_factory=list)
