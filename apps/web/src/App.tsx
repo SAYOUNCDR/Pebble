@@ -11,6 +11,7 @@ import { JobsPage } from './pages/jobs-page'
 import { LoginPage } from './pages/login-page'
 import { ManualDetailPage } from './pages/manual-detail-page'
 import { ManualsPage } from './pages/manuals-page'
+import { UploadManualPage } from './pages/upload-manual-page'
 import { NotFoundPage } from './pages/not-found-page'
 import { RegisterPage } from './pages/register-page'
 
@@ -56,6 +57,14 @@ function App(): React.JSX.Element {
                     element={
                         <ProtectedRoute>
                             <ManualsPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/upload-manual"
+                    element={
+                        <ProtectedRoute>
+                            <UploadManualPage />
                         </ProtectedRoute>
                     }
                 />

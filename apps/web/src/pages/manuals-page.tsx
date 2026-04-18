@@ -1,26 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
 import { useAuth } from '../features/auth/auth-context'
 import { pipelineApi } from '../features/pipeline/pipeline-api'
 import type { Manual } from '../features/pipeline/types'
 
 export function ManualsPage(): React.JSX.Element {
     const { token } = useAuth()
+    const navigate = useNavigate()
     const [manuals, setManuals] = useState<Manual[]>([])
     const [loading, setLoading] = useState(true)
-    const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
-
-    const [manualId, setManualId] = useState('')
-    const [manualName, setManualName] = useState('')
-    const [file, setFile] = useState<File | null>(null)
-
-    const canSubmit = useMemo(() => Boolean(manualId.trim() && manualName.trim() && file), [manualId, manualName, file])
 
     const loadManuals = async () => {
         if (!token) {
@@ -43,79 +35,37 @@ export function ManualsPage(): React.JSX.Element {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token])
 
-    const onCreateManual = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault()
-        if (!token || !file || !canSubmit) {
-            return
-        }
-
-        setError(null)
-        setSubmitting(true)
-        try {
-            await pipelineApi.createManual(token, {
-                manualId: manualId.trim(),
-                manualName: manualName.trim(),
-                file,
-            })
-            setManualId('')
-            setManualName('')
-            setFile(null)
-            await loadManuals()
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to create manual.')
-        } finally {
-            setSubmitting(false)
-        }
-    }
-
     return (
-        <main className="mx-auto w-full max-w-6xl px-4 py-10">
+        <main className="mx-auto w-full max-w-4xl px-4 py-10">
             <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Manuals</h1>
-                <p className="mt-2 text-sm text-slate-600">Upload a PDF manual, then generate checklists from its content.</p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Your Manuals</h1>
+                        <p className="mt-2 text-sm text-slate-600">Manage your uploaded PDF manuals and generate checklists from their content.</p>
+                    </div>
+                    <Button onClick={() => navigate('/upload-manual')} className="whitespace-nowrap">
+                        Upload Manual
+                    </Button>
+                </div>
             </section>
 
-            <section className="mt-6 grid gap-4 lg:grid-cols-[1fr_1.3fr]">
+            <section className="mt-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Upload Manual</CardTitle>
-                        <CardDescription>Create a manual record with an attached PDF file.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form className="space-y-4" onSubmit={onCreateManual}>
-                            <div className="space-y-2">
-                                <Label htmlFor="manual-id">Manual ID</Label>
-                                <Input id="manual-id" value={manualId} onChange={(e) => setManualId(e.target.value)} placeholder="newio-manual" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="manual-name">Manual Name</Label>
-                                <Input id="manual-name" value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="New IO System Manual" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="manual-file">PDF File</Label>
-                                <Input
-                                    id="manual-file"
-                                    type="file"
-                                    accept="application/pdf"
-                                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                                />
-                            </div>
-                            <Button type="submit" disabled={!canSubmit || submitting}>
-                                {submitting ? 'Uploading...' : 'Upload Manual'}
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Your Manuals</CardTitle>
+                        <CardTitle className="text-lg">Available Manuals</CardTitle>
                         <CardDescription>{loading ? 'Loading manuals...' : `${manuals.length} manual(s) found.`}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {error ? <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
 
-                        {manuals.length === 0 && !loading ? <p className="text-sm text-slate-600">No manuals yet.</p> : null}
+                        {manuals.length === 0 && !loading ? (
+                            <p className="text-center text-sm text-slate-600 py-8">
+                                No manuals yet.{' '}
+                                <button className="font-medium text-blue-600 hover:underline" onClick={() => navigate('/upload-manual')}>
+                                    Upload your first manual
+                                </button>
+                            </p>
+                        ) : null}
 
                         <div className="space-y-3">
                             {manuals.map((manual) => (
