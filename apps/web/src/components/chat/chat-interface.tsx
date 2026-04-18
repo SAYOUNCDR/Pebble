@@ -23,7 +23,7 @@ export function ChatInterface({ token, manualId, onSuggestChecklist }: ChatInter
 
     useEffect(() => {
         scrollToBottom()
-    }, [messages])
+    }, [messages, sending])
 
     const onSendMessage = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -56,7 +56,6 @@ export function ChatInterface({ token, manualId, onSuggestChecklist }: ChatInter
             setMessages((prev) => [...prev, assistantMessage])
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to send message')
-            setMessages((prev) => prev.slice(0, -1))
         } finally {
             setSending(false)
         }
@@ -78,8 +77,8 @@ export function ChatInterface({ token, manualId, onSuggestChecklist }: ChatInter
                     <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div
                             className={`max-w-xs rounded-lg px-3 py-2 ${msg.role === 'user'
-                                    ? 'bg-slate-900 text-white'
-                                    : 'bg-slate-100 text-slate-900'
+                                ? 'bg-slate-900 text-white'
+                                : 'bg-slate-100 text-slate-900'
                                 }`}
                         >
                             <p className="text-sm">{msg.content}</p>
@@ -94,6 +93,19 @@ export function ChatInterface({ token, manualId, onSuggestChecklist }: ChatInter
                         </div>
                     </div>
                 ))}
+
+                {sending && (
+                    <div className="flex justify-start">
+                        <div className="max-w-xs rounded-lg bg-slate-100 px-3 py-2 text-slate-900">
+                            <div className="flex items-center gap-1">
+                                <span className="sr-only">Assistant is typing</span>
+                                <span className="typing-dot" />
+                                <span className="typing-dot" />
+                                <span className="typing-dot" />
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {error && (
                     <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-700">
@@ -114,7 +126,7 @@ export function ChatInterface({ token, manualId, onSuggestChecklist }: ChatInter
                         className="flex-1"
                     />
                     <Button type="submit" disabled={sending || !input.trim()} size="sm">
-                        {sending ? 'Sending...' : 'Send'}
+                        {sending ? 'Thinking...' : 'Send'}
                     </Button>
                 </form>
             </div>
