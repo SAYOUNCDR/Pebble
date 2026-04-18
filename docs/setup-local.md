@@ -32,15 +32,9 @@ cd services/ai
 pip install -r requirements.txt
 ```
 
-Optional PageIndex SDK:
-
-```bash
-pip install pageindex
-```
-
 ## Environment Files
 
-Copy templates into actual `.env` files.
+Create `.env` files with the values below.
 
 ### Frontend (`apps/web/.env`)
 
@@ -112,3 +106,7 @@ npm run dev
 - API: `http://localhost:4000/health`
 - API deps: `http://localhost:4000/health/deps`
 - AI: `http://localhost:8001/health`
+
+## Common Issue
+
+If jobs stay `queued`, the worker process is usually not running. Start `npm run worker:dev` in `services/api`.

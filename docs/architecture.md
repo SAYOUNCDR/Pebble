@@ -21,8 +21,10 @@ Async generation path:
 ### Frontend (`apps/web`)
 
 - Auth UI and route guards
-- Manual upload and generation flow
+- Manual upload, generation flow, and job/status UX
 - Jobs polling and checklist detail rendering
+- Checklist edit and export UX
+- Manual-specific chat UI
 - Calls only Express API
 
 ### API (`services/api`)
@@ -31,6 +33,7 @@ Async generation path:
 - Manual upload/storage metadata
 - Job creation and queue orchestration
 - Checklist persistence and retrieval
+- Chat history persistence per manual
 - Dependency health checks (`/health`, `/health/deps`)
 
 ### Worker (`services/api/src/workers/pipelineWorker.ts`)
@@ -49,10 +52,10 @@ Async generation path:
 
 ## Data Stores
 
-- MongoDB: users, manuals, jobs, checklists
+- MongoDB: users, manuals, jobs, checklists, exports, chat threads
 - Redis: queue and queue metadata (BullMQ)
 
 ## Current Constraints
 
-- Team/workspace boundaries are planned, not fully implemented.
-- Checklist edit/update and export endpoints are planned, not fully implemented.
+- Team/workspace management can be expanded in UI and policy depth.
+- Automated test coverage can be increased (integration/e2e).

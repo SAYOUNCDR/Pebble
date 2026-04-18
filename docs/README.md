@@ -1,6 +1,6 @@
 # Pebble Documentation
 
-This folder contains project documentation for architecture, setup, API contracts, and operations.
+This folder contains the maintained, project-level operational documentation.
 
 ## Documents
 
@@ -9,7 +9,6 @@ This folder contains project documentation for architecture, setup, API contract
 - [API Reference](./api-reference.md)
 - [Operations Runbook](./operations-runbook.md)
 - [Troubleshooting](./troubleshooting.md)
-- [Roadmap Status](./roadmap-status.md)
 
 ## Quick Start
 

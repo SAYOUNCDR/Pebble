@@ -26,6 +26,17 @@ Checklist:
 3. AI service health is `ok`.
 4. API deps endpoint reports healthy dependencies.
 
+## Symptom: Jobs show in UI but not in Redis queue browser
+
+Cause:
+
+- Jobs list is read from MongoDB (`jobs` collection), not directly from Redis.
+
+Action:
+
+1. Check MongoDB `jobs` documents for historical/completed records.
+2. Use `/api/jobs/:jobId` to compare persisted status and queue state.
+
 ## Symptom: Redis warning about eviction policy
 
 Message:

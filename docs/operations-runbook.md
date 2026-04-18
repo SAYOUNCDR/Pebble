@@ -45,7 +45,12 @@ If jobs are stuck in `queued` state:
 
 1. Confirm worker process is running.
 2. Check `/api/jobs/health` for Redis connectivity.
-3. Query queue counts using ad-hoc script or inspect job endpoint.
+3. Inspect `/api/jobs/:jobId` for persisted status and queue state.
+
+## Data Source Clarification
+
+- Jobs list (`GET /api/jobs`) is served from MongoDB persisted job records.
+- Redis/BullMQ provides queue state and runtime job processing, not the primary jobs list source.
 
 ## Deployment Notes
 
