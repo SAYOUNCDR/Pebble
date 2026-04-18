@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { useAuth } from '../../features/auth/auth-context'
@@ -19,7 +20,7 @@ export function ChecklistListSidebar({ manualId, manual, onNewChecklist, onRefre
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    const loadChecklists = async () => {
+    const loadChecklists = useCallback(async () => {
         if (!token) return
 
         try {
@@ -32,17 +33,26 @@ export function ChecklistListSidebar({ manualId, manual, onNewChecklist, onRefre
         } finally {
             setLoading(false)
         }
-    }
+    }, [manualId, token])
 
     useEffect(() => {
         void loadChecklists()
-    }, [manualId, token])
+    }, [loadChecklists])
 
     return (
-        <div className="space-y-4">
+        <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pr-1">
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-base">Manual Overview</CardTitle>
+                    <div className="flex items-center justify-between gap-3">
+                        <CardTitle className="text-base">Manual Overview</CardTitle>
+                        <Link
+                            to="/manuals"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm shadow-slate-900/5 transition hover:bg-slate-100 hover:text-slate-900"
+                        >
+                            <ArrowLeft className="h-3.5 w-3.5" />
+                            Back
+                        </Link>
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-xs text-slate-700">
                     <div>
@@ -63,7 +73,7 @@ export function ChecklistListSidebar({ manualId, manual, onNewChecklist, onRefre
                 </CardContent>
             </Card>
 
-            <Card className="h-full">
+            <Card>
                 <CardHeader>
                     <CardTitle className="text-base">Generated Checklists</CardTitle>
                 </CardHeader>

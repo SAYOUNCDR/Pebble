@@ -87,18 +87,13 @@ export function ManualDetailPage(): React.JSX.Element {
     }
 
     return (
-        <main className="mx-auto w-full h-screen flex flex-col bg-slate-50">
-            <div className="border-b border-slate-200 bg-white px-6 py-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900">{manual.manualName}</h1>
-                        <p className="text-sm text-slate-600">Chat, build checklists, and manage</p>
-                    </div>
-                    <Link to="/manuals" className="text-sm text-slate-600 underline underline-offset-4">
-                        Back to manuals
-                    </Link>
+        <main className="fixed inset-x-0 bottom-4 mx-auto flex w-[80%] max-w-6xl flex-col overflow-hidden bg-slate-50 px-0" style={{ top: '5.5rem' }}>
+
+            <section className="sr-only">
+                <div>
+                    <h1>{manual.manualName}</h1>
                 </div>
-            </div>
+            </section>
 
             {error && (
                 <div className="mx-4 mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -106,31 +101,29 @@ export function ManualDetailPage(): React.JSX.Element {
                 </div>
             )}
 
-            <div className="flex-1 overflow-hidden px-6 py-4">
-                <div className="grid h-full gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-                    {/* Left sidebar: Manual info + checklist list */}
-                    <div key={checklistListKey} className="overflow-y-auto">
-                        <ChecklistListSidebar
-                            manualId={manual.manualId}
-                            manual={manual}
-                            onNewChecklist={() => {
-                                setBuilderSuggestedPayload(undefined)
-                                setBuilderOpen(true)
-                            }}
-                            onRefresh={() => setChecklistListKey((prev) => prev + 1)}
-                        />
-                    </div>
+            <div className="mt-4 grid min-h-0 flex-1 gap-4 xl:grid-cols-[340px_minmax(0,1fr)] xl:items-start">
+                {/* Left sidebar: Manual info + checklist list */}
+                <div key={checklistListKey} className="min-h-0 h-full self-stretch overflow-hidden rounded-3xl">
+                    <ChecklistListSidebar
+                        manualId={manual.manualId}
+                        manual={manual}
+                        onNewChecklist={() => {
+                            setBuilderSuggestedPayload(undefined)
+                            setBuilderOpen(true)
+                        }}
+                        onRefresh={() => setChecklistListKey((prev) => prev + 1)}
+                    />
+                </div>
 
-                    {/* Center: Chat interface */}
-                    <div className="overflow-hidden">
-                        {token && (
-                            <ChatInterface
-                                token={token}
-                                manualId={manual.manualId}
-                                onSuggestChecklist={onChatSuggestChecklist}
-                            />
-                        )}
-                    </div>
+                {/* Center: Chat interface */}
+                <div className="min-h-0 h-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm shadow-slate-900/5">
+                    {token && (
+                        <ChatInterface
+                            token={token}
+                            manualId={manual.manualId}
+                            onSuggestChecklist={onChatSuggestChecklist}
+                        />
+                    )}
                 </div>
             </div>
 
