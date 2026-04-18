@@ -29,19 +29,10 @@ export function SiteHeader(): React.JSX.Element {
                         {user ? (
                             <>
                                 <Link
-                                    to="/dashboard"
-                                    className="rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
-                                >
-                                    Dashboard
-                                </Link>
-                                <Link
                                     to="/manuals"
                                     className="rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
                                 >
                                     Manuals
-                                </Link>
-                                <Link to="/jobs" className="rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 hover:text-slate-900">
-                                    Jobs
                                 </Link>
                                 <Button variant="outline" size="sm" onClick={onLogout}>
                                     Logout

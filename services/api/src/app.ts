@@ -8,6 +8,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { notFoundHandler } from "./middleware/notFound.js";
 import { aiRouter } from "./modules/ai/routes.js";
 import { authRouter } from "./modules/auth/routes.js";
+import { chatRouter } from "./modules/chat/routes.js";
 import { checklistsRouter } from "./modules/checklists/routes.js";
 import { exportsRouter } from "./modules/exports/routes.js";
 import { jobsRouter } from "./modules/jobs/routes.js";
@@ -52,6 +53,7 @@ app.get("/health/deps", async (_req: Request, res: Response, next: NextFunction)
 
 app.use("/api/ai", aiRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/chat", chatRouter);
 app.use("/api/jobs", jobsRouter);
 app.use("/api/manuals", manualsRouter);
 app.use("/api/checklists", checklistsRouter);
