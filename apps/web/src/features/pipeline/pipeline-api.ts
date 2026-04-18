@@ -15,6 +15,12 @@ export const pipelineApi = {
             headers: { Authorization: `Bearer ${token}` },
         }),
 
+    getChecklistsByManual: (token: string, manualId: string) =>
+        apiRequest<{ checklists: Checklist[] }>(`/api/manuals/${encodeURIComponent(manualId)}/checklists`, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+
     createManual: async (token: string, payload: CreateManualPayload) => {
         const body = new FormData()
         body.append('manualId', payload.manualId)

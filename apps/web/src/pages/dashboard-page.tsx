@@ -10,7 +10,7 @@ export function DashboardPage(): React.JSX.Element {
 
     return (
         <main className="mx-auto w-full max-w-6xl px-4 py-10">
-            <section className="rounded-3xl border border-slate-200 bg-gradient-to-b from-white to-slate-100 p-8 shadow-sm">
+            <section className="rounded-3xl border border-slate-200 bg-linear-to-b from-white to-slate-100 p-8 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Authenticated</p>
                 <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Welcome back, {user?.fullName}</h1>
                 <p className="mt-3 text-sm text-slate-600">Manage manuals, run AI checklist generation jobs, and review completed checklists.</p>

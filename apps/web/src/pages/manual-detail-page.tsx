@@ -7,7 +7,6 @@ import type { GenerateChecklistPayload, Manual } from "../features/pipeline/type
 import { ChatInterface } from "../components/chat/chat-interface"
 import { ChecklistBuilderModal } from "../components/checklist/checklist-builder-modal"
 import { ChecklistListSidebar } from "../components/checklist/checklist-list-sidebar"
-import { ManualInfoPanel } from "../components/manual/manual-info-panel"
 import type { ChatMessage } from "../features/chat/chat-api"
 
 export function ManualDetailPage(): React.JSX.Element {
@@ -108,17 +107,22 @@ export function ManualDetailPage(): React.JSX.Element {
             )}
 
             <div className="flex-1 overflow-hidden px-6 py-4">
-                <div className="grid gap-4 h-full grid-cols-4">
-                    {/* Left sidebar: Checklist list */}
-                    <div key={checklistListKey} className="col-span-1 overflow-y-auto">
+                <div className="grid h-full gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
+                    {/* Left sidebar: Manual info + checklist list */}
+                    <div key={checklistListKey} className="overflow-y-auto">
                         <ChecklistListSidebar
                             manualId={manual.manualId}
+                            manual={manual}
+                            onNewChecklist={() => {
+                                setBuilderSuggestedPayload(undefined)
+                                setBuilderOpen(true)
+                            }}
                             onRefresh={() => setChecklistListKey((prev) => prev + 1)}
                         />
                     </div>
 
                     {/* Center: Chat interface */}
-                    <div className="col-span-2 overflow-hidden">
+                    <div className="overflow-hidden">
                         {token && (
                             <ChatInterface
                                 token={token}
@@ -126,17 +130,6 @@ export function ManualDetailPage(): React.JSX.Element {
                                 onSuggestChecklist={onChatSuggestChecklist}
                             />
                         )}
-                    </div>
-
-                    {/* Right sidebar: Manual info + New Checklist button */}
-                    <div key={`${checklistListKey}-info`} className="col-span-1 overflow-y-auto">
-                        <ManualInfoPanel
-                            manual={manual}
-                            onNewChecklist={() => {
-                                setBuilderSuggestedPayload(undefined)
-                                setBuilderOpen(true)
-                            }}
-                        />
                     </div>
                 </div>
             </div>

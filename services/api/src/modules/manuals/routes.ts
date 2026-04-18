@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { HttpError } from "../../utils/httpError.js";
 import { requireAuth } from "../auth/middleware.js";
+import { ChecklistModel } from "../checklists/model.js";
 import { JobModel } from "../jobs/model.js";
 import { enqueueChecklistGenerationJob } from "../jobs/queue.js";
 import { ManualModel } from "./model.js";
@@ -79,7 +80,7 @@ manualsRouter.get("/", requireAuth, async (request: Request, response: Response)
     response.status(200).json({ manuals });
 });
 
-manualsRouter.get("/:manualId", requireAuth, async (request: Request, response: Response) => {
+manualsRouter.get("/:manualId/checklists", requireAuth, async (request: Request, response: Response) => {
     const ownerUserId = request.authUser?.sub;
     if (!ownerUserId) {
         throw new HttpError("Unauthorized.", 401);
@@ -95,7 +96,8 @@ manualsRouter.get("/:manualId", requireAuth, async (request: Request, response: 
         throw new HttpError("Manual not found.", 404);
     }
 
-    response.status(200).json({ manual });
+    const checklists = await ChecklistModel.find({ ownerUserId, manualId }).sort({ createdAt: -1 }).lean();
+    response.status(200).json({ checklists });
 });
 
 manualsRouter.post("/:manualId/checklists/generate", requireAuth, async (request: Request, response: Response) => {
@@ -146,4 +148,23 @@ manualsRouter.post("/:manualId/checklists/generate", requireAuth, async (request
         jobId: jobEnqueue.jobId,
         manualId: manual.manualId,
     });
+});
+
+manualsRouter.get("/:manualId", requireAuth, async (request: Request, response: Response) => {
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
+
+    const manualId = request.params.manualId;
+    if (!manualId) {
+        throw new HttpError("Manual ID is required.", 400);
+    }
+
+    const manual = await ManualModel.findOne({ ownerUserId, manualId }).lean();
+    if (!manual) {
+        throw new HttpError("Manual not found.", 404);
+    }
+
+    response.status(200).json({ manual });
 });
