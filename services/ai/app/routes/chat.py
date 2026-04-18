@@ -120,6 +120,19 @@ def _build_context(manual_name: str, sections: list[dict[str, object]]) -> str:
     return "\n".join(lines)
 
 
+def _build_history_block(chat_history: list[dict[str, str]]) -> str:
+    if not chat_history:
+        return "No prior conversation."
+
+    lines = ["Prior conversation:"]
+    for item in chat_history[-12:]:
+        role = str(item.get("role", "user")).strip() or "user"
+        content = str(item.get("content", "")).strip()
+        if content:
+            lines.append(f"- {role}: {content}")
+    return "\n".join(lines)
+
+
 def _fallback_reply(
     manual_name: str, message: str, sections: list[dict[str, object]]
 ) -> str:
@@ -237,6 +250,7 @@ async def query_chat(payload: ChatQueryRequest) -> ChatQueryResponse:
         sections = _build_sections(manual_data=manual_data, index_data=index_data)
         selected_sections = _pick_sections(payload.message, sections, limit=5)
         context = _build_context(manual_name, selected_sections)
+        history_block = _build_history_block(payload.chat_history)
 
         dmr_client = DMRClient()
         model_output: str | None = None
@@ -249,6 +263,7 @@ async def query_chat(payload: ChatQueryRequest) -> ChatQueryResponse:
                             "You are Pebble, a polished manual helper for checklist planning and Q&A. "
                             "You support maintenance manuals, service guides, and technical handbooks, not just maintenance teams. "
                             "Use the provided context first, but if the manual does not contain enough detail, provide a short general-guidance answer and clearly label it as general guidance. "
+                            "Use prior conversation as context so follow-up questions stay connected. "
                             "Return valid JSON with keys reply and suggested_checklist_payload. "
                             "The reply value must be plain text with short headings, blank lines, and bullet points or numbered lists. "
                             "Do not use markdown bold markers, markdown tables, or asterisks for emphasis. "
@@ -257,7 +272,7 @@ async def query_chat(payload: ChatQueryRequest) -> ChatQueryResponse:
                     },
                     {
                         "role": "user",
-                        "content": f"Question: {payload.message}\n\nContext:\n{context}",
+                        "content": f"Question: {payload.message}\n\nContext:\n{context}\n\n{history_block}",
                     },
                 ],
                 temperature=0.2,

@@ -38,6 +38,7 @@ class ChatQueryRequest(BaseModel):
     message: str = Field(min_length=1, max_length=500)
     manual_name: str | None = None
     file_path: str | None = None
+    chat_history: list[dict[str, str]] = Field(default_factory=list)
 
 
 class ChatQueryResponse(BaseModel):

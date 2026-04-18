@@ -19,12 +19,22 @@ export interface ChatQuery {
     message: string
 }
 
+export interface ChatHistoryResponse {
+    manualId: string
+    messages: ChatMessage[]
+}
+
 export interface ChatResponse {
     reply: string
     suggestedChecklistPayload?: ChatMessage['suggestedChecklistPayload']
 }
 
 export const chatApi = {
+    getHistory: (token: string, manualId: string) =>
+        apiRequest<ChatHistoryResponse>(`/api/chat/history?manualId=${encodeURIComponent(manualId)}`, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token}` },
+        }),
     sendMessage: (token: string, query: ChatQuery) =>
         apiRequest<ChatResponse>('/api/chat/query', {
             method: 'POST',

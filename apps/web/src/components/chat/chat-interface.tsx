@@ -12,6 +12,7 @@ export interface ChatInterfaceProps {
 
 export function ChatInterface({ token, manualId, onSuggestChecklist }: ChatInterfaceProps): React.JSX.Element {
     const [messages, setMessages] = useState<ChatMessage[]>([])
+    const [loadingHistory, setLoadingHistory] = useState(false)
     const [input, setInput] = useState('')
     const [sending, setSending] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -129,9 +130,44 @@ export function ChatInterface({ token, manualId, onSuggestChecklist }: ChatInter
         scrollToBottom()
     }, [messages, sending])
 
+    useEffect(() => {
+        let cancelled = false
+
+        const loadHistory = async () => {
+            if (!token || !manualId) {
+                return
+            }
+
+            setLoadingHistory(true)
+            setError(null)
+
+            try {
+                const response = await chatApi.getHistory(token, manualId)
+                if (!cancelled) {
+                    setMessages(response.messages)
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setError(err instanceof Error ? err.message : 'Failed to load chat history')
+                    setMessages([])
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoadingHistory(false)
+                }
+            }
+        }
+
+        void loadHistory()
+
+        return () => {
+            cancelled = true
+        }
+    }, [manualId, token])
+
     const onSendMessage = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!input.trim() || sending) return
+        if (!input.trim() || sending || loadingHistory) return
 
         const userMessage: ChatMessage = {
             role: 'user',
@@ -168,7 +204,16 @@ export function ChatInterface({ token, manualId, onSuggestChecklist }: ChatInter
     return (
         <div className="flex h-full flex-col rounded-lg border border-slate-200 bg-white shadow-sm">
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.length === 0 && (
+                {loadingHistory && messages.length === 0 && (
+                    <div className="flex h-full items-center justify-center text-center">
+                        <div>
+                            <p className="text-sm text-slate-500">Loading previous conversation</p>
+                            <p className="mt-1 text-xs text-slate-400">This manual keeps its own chat thread</p>
+                        </div>
+                    </div>
+                )}
+
+                {!loadingHistory && messages.length === 0 && (
                     <div className="flex h-full items-center justify-center text-center">
                         <div>
                             <p className="text-sm text-slate-500">Start a conversation about this manual</p>
@@ -232,10 +277,10 @@ export function ChatInterface({ token, manualId, onSuggestChecklist }: ChatInter
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Ask about the manual or request a checklist..."
-                        disabled={sending}
+                        disabled={sending || loadingHistory}
                         className="flex-1"
                     />
-                    <Button type="submit" disabled={sending || !input.trim()} size="sm">
+                    <Button type="submit" disabled={sending || loadingHistory || !input.trim()} size="sm">
                         {sending ? 'Thinking...' : 'Send'}
                     </Button>
                 </form>

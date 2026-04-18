@@ -74,6 +74,7 @@ export interface ChatRequest {
     message: string;
     manual_name?: string;
     file_path?: string;
+    chat_history?: Array<{ role: "user" | "assistant"; content: string }>;
 }
 
 export interface ChatResponse {
