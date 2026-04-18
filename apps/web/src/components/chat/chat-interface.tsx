@@ -21,6 +21,110 @@ export function ChatInterface({ token, manualId, onSuggestChecklist }: ChatInter
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
 
+    const cleanInlineText = (value: string) =>
+        value
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/\*(.*?)\*/g, '$1')
+            .replace(/`([^`]*)`/g, '$1')
+            .trim()
+
+    const renderAssistantContent = (content: string) => {
+        const lines = content.split(/\r?\n/)
+        const blocks: Array<{ type: 'heading' | 'paragraph' | 'bullets' | 'numbers'; items?: string[]; text?: string }> = []
+        let paragraphBuffer: string[] = []
+        let listBuffer: string[] = []
+        let listType: 'bullets' | 'numbers' | null = null
+
+        const flushParagraph = () => {
+            if (!paragraphBuffer.length) return
+            blocks.push({ type: 'paragraph', text: cleanInlineText(paragraphBuffer.join(' ')) })
+            paragraphBuffer = []
+        }
+
+        const flushList = () => {
+            if (!listBuffer.length || !listType) return
+            blocks.push({ type: listType, items: listBuffer.map(cleanInlineText) })
+            listBuffer = []
+            listType = null
+        }
+
+        for (const rawLine of lines) {
+            const line = rawLine.trim()
+
+            if (!line) {
+                flushParagraph()
+                flushList()
+                continue
+            }
+
+            const headingMatch = line.match(/^(#{1,3})\s+(.*)$/)
+            if (headingMatch) {
+                flushParagraph()
+                flushList()
+                blocks.push({ type: 'heading', text: cleanInlineText(headingMatch[2]) })
+                continue
+            }
+
+            const bulletMatch = line.match(/^(?:[-*•]|\d+[.)])\s+(.*)$/)
+            if (bulletMatch) {
+                flushParagraph()
+                const isOrdered = /^\d+[.)]\s+/.test(line)
+                const nextType = isOrdered ? 'numbers' : 'bullets'
+                if (listType && listType !== nextType) {
+                    flushList()
+                }
+                listType = nextType
+                listBuffer.push(bulletMatch[1])
+                continue
+            }
+
+            if (line.endsWith(':') && line.length <= 60) {
+                flushParagraph()
+                flushList()
+                blocks.push({ type: 'heading', text: cleanInlineText(line.slice(0, -1)) })
+                continue
+            }
+
+            flushList()
+            paragraphBuffer.push(line)
+        }
+
+        flushParagraph()
+        flushList()
+
+        return blocks.map((block, index) => {
+            if (block.type === 'heading') {
+                return (
+                    <div key={index} className="mt-3 first:mt-0">
+                        <p className="text-sm font-semibold text-slate-900">{block.text}</p>
+                    </div>
+                )
+            }
+
+            if (block.type === 'paragraph') {
+                return (
+                    <p key={index} className="whitespace-pre-wrap text-sm leading-6 text-slate-800">
+                        {block.text}
+                    </p>
+                )
+            }
+
+            if (block.type === 'numbers') {
+                return (
+                    <ol key={index} className="ml-5 list-decimal space-y-1 text-sm leading-6 text-slate-800">
+                        {block.items?.map((item, itemIndex) => <li key={itemIndex}>{item}</li>)}
+                    </ol>
+                )
+            }
+
+            return (
+                <ul key={index} className="ml-5 list-disc space-y-1 text-sm leading-6 text-slate-800">
+                    {block.items?.map((item, itemIndex) => <li key={itemIndex}>{item}</li>)}
+                </ul>
+            )
+        })
+    }
+
     useEffect(() => {
         scrollToBottom()
     }, [messages, sending])
@@ -76,12 +180,18 @@ export function ChatInterface({ token, manualId, onSuggestChecklist }: ChatInter
                 {messages.map((msg, idx) => (
                     <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div
-                            className={`max-w-xs rounded-lg px-3 py-2 ${msg.role === 'user'
+                            className={`max-w-md rounded-2xl px-4 py-3 shadow-sm ${msg.role === 'user'
                                 ? 'bg-slate-900 text-white'
-                                : 'bg-slate-100 text-slate-900'
+                                : 'border border-slate-200 bg-white text-slate-900'
                                 }`}
                         >
-                            <p className="text-sm">{msg.content}</p>
+                            <div className="space-y-2">
+                                {msg.role === 'assistant' ? (
+                                    renderAssistantContent(msg.content)
+                                ) : (
+                                    <p className="text-sm leading-6">{msg.content}</p>
+                                )}
+                            </div>
                             {msg.suggestedChecklistPayload && (
                                 <button
                                     onClick={() => onSuggestChecklist?.(msg.suggestedChecklistPayload)}

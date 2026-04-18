@@ -131,19 +131,32 @@ def _fallback_reply(
     if "checklist" in message.lower() or "generate" in message.lower():
         if section_titles:
             return (
-                f'I can help generate a checklist for "{manual_name}". '
-                f'The most relevant parts I found are: {", ".join(section_titles)}. '
-                "Use New Checklist to create a structured version from those sections."
+                "Summary:\n"
+                f'I can help generate a checklist for "{manual_name}".\n\n'
+                "Key sections:\n"
+                + "\n".join(f"- {title}" for title in section_titles)
+                + "\n\nNext step:\nUse New Checklist to create a structured version from these sections."
             )
-        return f'I can help generate a checklist for "{manual_name}". Try the New Checklist button to build one from the manual.'
+        return (
+            "Summary:\n"
+            f'I can help generate a checklist for "{manual_name}".\n\n'
+            "Next step:\nUse the New Checklist button to build one from the manual."
+        )
 
     if section_titles:
         return (
-            f'I found these relevant sections in "{manual_name}": {", ".join(section_titles)}. '
-            "Ask a more specific question and I’ll focus on the matching section."
+            "Summary:\n"
+            f'I found relevant sections in "{manual_name}".\n\n'
+            "Relevant sections:\n"
+            + "\n".join(f"- {title}" for title in section_titles)
+            + "\n\nNext step:\nAsk a more specific question and I’ll focus on the matching section."
         )
 
-    return f'I’m looking at "{manual_name}". Ask a more specific question or generate a checklist to structure the manual content.'
+    return (
+        "Summary:\n"
+        f'I’m looking at "{manual_name}".\n\n'
+        "Next step:\nAsk a more specific question or generate a checklist to structure the manual content."
+    )
 
 
 def _suggested_checklist_payload(message: str) -> ChatSuggestedChecklistPayload | None:
@@ -220,7 +233,13 @@ async def query_chat(payload: ChatQueryRequest) -> ChatQueryResponse:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You answer questions about a maintenance manual. Use only the provided context. Return valid JSON with keys reply and suggested_checklist_payload.",
+                        "content": (
+                            "You answer questions about a maintenance manual. Use only the provided context. "
+                            "Return valid JSON with keys reply and suggested_checklist_payload. "
+                            "The reply value must be plain text with short headings, blank lines, and bullet points or numbered lists. "
+                            "Do not use markdown bold markers, markdown tables, or asterisks for emphasis. "
+                            "Keep the answer concise, readable, and enterprise-style."
+                        ),
                     },
                     {
                         "role": "user",
