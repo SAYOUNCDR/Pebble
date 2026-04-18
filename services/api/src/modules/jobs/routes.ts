@@ -4,7 +4,6 @@ import { z } from "zod";
 import { pingRedis } from "../../db/redis.js";
 import { HttpError } from "../../utils/httpError.js";
 import { requireAuth } from "../auth/middleware.js";
-import { resolveAccessScope, scopeQuery } from "../teams/scope.js";
 import { JobModel } from "./model.js";
 import { enqueueChecklistGenerationJob, pipelineQueue } from "./queue.js";
 
@@ -29,7 +28,11 @@ jobsRouter.get("/health", async (_request: Request, response: Response) => {
 });
 
 jobsRouter.post("/generate", requireAuth, async (request: Request, response: Response) => {
-    const scope = await resolveAccessScope(request);
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
+
     const parsed = createJobSchema.safeParse(request.body);
     if (!parsed.success) {
         throw new HttpError("Invalid job payload.", 400, parsed.error.flatten());
@@ -37,8 +40,7 @@ jobsRouter.post("/generate", requireAuth, async (request: Request, response: Res
 
     const created = await enqueueChecklistGenerationJob({
         ...parsed.data,
-        enqueuedByUserId: scope.ownerUserId,
-        ...(scope.teamId ? { teamId: scope.teamId } : {}),
+        enqueuedByUserId: ownerUserId,
     });
     response.status(202).json({
         status: "queued",
@@ -47,14 +49,20 @@ jobsRouter.post("/generate", requireAuth, async (request: Request, response: Res
 });
 
 jobsRouter.get("/", requireAuth, async (request: Request, response: Response) => {
-    const scope = await resolveAccessScope(request);
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
 
-    const jobs = await JobModel.find(scopeQuery(scope)).sort({ createdAt: -1 }).lean();
+    const jobs = await JobModel.find({ ownerUserId }).sort({ createdAt: -1 }).lean();
     response.status(200).json({ jobs });
 });
 
 jobsRouter.get("/:jobId", requireAuth, async (request: Request, response: Response) => {
-    const scope = await resolveAccessScope(request);
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
 
     const rawJobId = request.params.jobId;
     const jobId = Array.isArray(rawJobId) ? rawJobId[0] : rawJobId;
@@ -62,7 +70,7 @@ jobsRouter.get("/:jobId", requireAuth, async (request: Request, response: Respon
         throw new HttpError("Job ID is required.", 400);
     }
 
-    const persisted = await JobModel.findOne(scopeQuery(scope, { queueJobId: jobId })).lean();
+    const persisted = await JobModel.findOne({ ownerUserId, queueJobId: jobId }).lean();
     if (!persisted) {
         throw new HttpError("Job not found.", 404);
     }

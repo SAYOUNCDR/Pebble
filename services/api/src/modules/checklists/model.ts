@@ -3,7 +3,6 @@ import { Schema, model } from "mongoose";
 export interface ChecklistDocument {
     checklistId: string;
     ownerUserId: string;
-    teamId?: string;
     manualId: string;
     sourceJobId: string;
     itemCount: number;
@@ -21,7 +20,6 @@ const checklistSchema = new Schema<ChecklistDocument>(
     {
         checklistId: { type: String, required: true, unique: true, index: true },
         ownerUserId: { type: String, required: true, index: true },
-        teamId: { type: String, index: true },
         manualId: { type: String, required: true, index: true },
         sourceJobId: { type: String, required: true, index: true },
         itemCount: { type: Number, required: true },

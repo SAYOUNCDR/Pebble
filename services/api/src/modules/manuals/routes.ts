@@ -5,7 +5,6 @@ import { HttpError } from "../../utils/httpError.js";
 import { requireAuth } from "../auth/middleware.js";
 import { JobModel } from "../jobs/model.js";
 import { enqueueChecklistGenerationJob } from "../jobs/queue.js";
-import { resolveAccessScope, scopeQuery } from "../teams/scope.js";
 import { ManualModel } from "./model.js";
 import { manualUpload } from "./storage.js";
 
@@ -25,6 +24,11 @@ const generateSchema = z.object({
 });
 
 manualsRouter.post("/", requireAuth, manualUpload.single("file"), async (request: Request, response: Response) => {
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
+
     const parsed = createManualSchema.safeParse(request.body);
     if (!parsed.success) {
         throw new HttpError("Invalid manual payload.", 400, parsed.error.flatten());
@@ -34,17 +38,14 @@ manualsRouter.post("/", requireAuth, manualUpload.single("file"), async (request
         throw new HttpError("PDF file is required in multipart field 'file'.", 400);
     }
 
-    const scope = await resolveAccessScope(request);
-
     const manualId = parsed.data.manualId.trim();
-    const existing = await ManualModel.findOne(scopeQuery(scope, { manualId })).lean();
+    const existing = await ManualModel.findOne({ ownerUserId, manualId }).lean();
     if (existing) {
         throw new HttpError("Manual ID already exists for this user.", 409);
     }
 
     const created = await ManualModel.create({
-        ownerUserId: scope.ownerUserId,
-        ...(scope.teamId ? { teamId: scope.teamId } : {}),
+        ownerUserId,
         manualId,
         manualName: parsed.data.manualName.trim(),
         originalFileName: request.file.originalname,
@@ -69,21 +70,27 @@ manualsRouter.post("/", requireAuth, manualUpload.single("file"), async (request
 });
 
 manualsRouter.get("/", requireAuth, async (request: Request, response: Response) => {
-    const scope = await resolveAccessScope(request);
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
 
-    const manuals = await ManualModel.find(scopeQuery(scope)).sort({ createdAt: -1 }).lean();
+    const manuals = await ManualModel.find({ ownerUserId }).sort({ createdAt: -1 }).lean();
     response.status(200).json({ manuals });
 });
 
 manualsRouter.get("/:manualId", requireAuth, async (request: Request, response: Response) => {
-    const scope = await resolveAccessScope(request);
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
 
     const manualId = request.params.manualId;
     if (!manualId) {
         throw new HttpError("Manual ID is required.", 400);
     }
 
-    const manual = await ManualModel.findOne(scopeQuery(scope, { manualId })).lean();
+    const manual = await ManualModel.findOne({ ownerUserId, manualId }).lean();
     if (!manual) {
         throw new HttpError("Manual not found.", 404);
     }
@@ -92,14 +99,17 @@ manualsRouter.get("/:manualId", requireAuth, async (request: Request, response: 
 });
 
 manualsRouter.post("/:manualId/checklists/generate", requireAuth, async (request: Request, response: Response) => {
-    const scope = await resolveAccessScope(request);
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
 
     const manualId = request.params.manualId;
     if (!manualId) {
         throw new HttpError("Manual ID is required.", 400);
     }
 
-    const manual = await ManualModel.findOne(scopeQuery(scope, { manualId })).lean();
+    const manual = await ManualModel.findOne({ ownerUserId, manualId }).lean();
     if (!manual) {
         throw new HttpError("Manual not found.", 404);
     }
@@ -116,14 +126,12 @@ manualsRouter.post("/:manualId/checklists/generate", requireAuth, async (request
         provider: parsed.data.provider,
         retrievalMode: parsed.data.retrievalMode,
         strictCitations: parsed.data.strictCitations,
-        enqueuedByUserId: scope.ownerUserId,
-        ...(scope.teamId ? { teamId: scope.teamId } : {}),
+        enqueuedByUserId: ownerUserId,
     });
 
     await JobModel.create({
         queueJobId: jobEnqueue.jobId,
-        ownerUserId: scope.ownerUserId,
-        ...(scope.teamId ? { teamId: scope.teamId } : {}),
+        ownerUserId,
         manualId: manual.manualId,
         status: "queued",
         provider: parsed.data.provider,

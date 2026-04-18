@@ -4,7 +4,6 @@ import { z } from "zod";
 import { HttpError } from "../../utils/httpError.js";
 import { requireAuth } from "../auth/middleware.js";
 import { createChecklistPdfExport } from "../exports/service.js";
-import { resolveAccessScope, scopeQuery } from "../teams/scope.js";
 import { ChecklistModel } from "./model.js";
 
 export const checklistsRouter = express.Router();
@@ -29,14 +28,17 @@ const patchChecklistItemSchema = z
     });
 
 checklistsRouter.get("/:checklistId", requireAuth, async (request: Request, response: Response) => {
-    const scope = await resolveAccessScope(request);
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
 
     const checklistId = request.params.checklistId;
     if (!checklistId) {
         throw new HttpError("Checklist ID is required.", 400);
     }
 
-    const checklist = await ChecklistModel.findOne(scopeQuery(scope, { checklistId })).lean();
+    const checklist = await ChecklistModel.findOne({ ownerUserId, checklistId }).lean();
     if (!checklist) {
         throw new HttpError("Checklist not found.", 404);
     }
@@ -45,7 +47,10 @@ checklistsRouter.get("/:checklistId", requireAuth, async (request: Request, resp
 });
 
 checklistsRouter.patch("/:checklistId", requireAuth, async (request: Request, response: Response) => {
-    const scope = await resolveAccessScope(request);
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
 
     const checklistId = request.params.checklistId;
     if (!checklistId) {
@@ -57,7 +62,7 @@ checklistsRouter.patch("/:checklistId", requireAuth, async (request: Request, re
         throw new HttpError("Invalid checklist patch payload.", 400, parsed.error.flatten());
     }
 
-    const checklist = await ChecklistModel.findOne(scopeQuery(scope, { checklistId }));
+    const checklist = await ChecklistModel.findOne({ ownerUserId, checklistId });
     if (!checklist) {
         throw new HttpError("Checklist not found.", 404);
     }
@@ -76,7 +81,10 @@ checklistsRouter.patch("/:checklistId", requireAuth, async (request: Request, re
 });
 
 checklistsRouter.patch("/:checklistId/items/:itemId", requireAuth, async (request: Request, response: Response) => {
-    const scope = await resolveAccessScope(request);
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
 
     const checklistId = request.params.checklistId;
     const itemId = request.params.itemId;
@@ -89,7 +97,7 @@ checklistsRouter.patch("/:checklistId/items/:itemId", requireAuth, async (reques
         throw new HttpError("Invalid checklist item patch payload.", 400, parsed.error.flatten());
     }
 
-    const checklist = await ChecklistModel.findOne(scopeQuery(scope, { checklistId }));
+    const checklist = await ChecklistModel.findOne({ ownerUserId, checklistId });
     if (!checklist) {
         throw new HttpError("Checklist not found.", 404);
     }
@@ -133,19 +141,22 @@ checklistsRouter.patch("/:checklistId/items/:itemId", requireAuth, async (reques
 });
 
 checklistsRouter.post("/:checklistId/export/pdf", requireAuth, async (request: Request, response: Response) => {
-    const scope = await resolveAccessScope(request);
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
 
     const checklistId = request.params.checklistId;
     if (!checklistId) {
         throw new HttpError("Checklist ID is required.", 400);
     }
 
-    const checklist = await ChecklistModel.findOne(scopeQuery(scope, { checklistId }));
+    const checklist = await ChecklistModel.findOne({ ownerUserId, checklistId });
     if (!checklist) {
         throw new HttpError("Checklist not found.", 404);
     }
 
-    const exportArtifact = await createChecklistPdfExport(scope.ownerUserId, checklist, scope.teamId);
+    const exportArtifact = await createChecklistPdfExport(ownerUserId, checklist);
 
     response.status(201).json({
         status: exportArtifact.status,

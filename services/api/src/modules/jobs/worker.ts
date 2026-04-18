@@ -15,7 +15,7 @@ export function startPipelineWorker(): Worker<ChecklistGenerationJobPayload> {
             await setJobStatus(queueJobId, "ingesting");
 
             const manual = await ManualModel.findOne({
-                ...(job.data.teamId ? { teamId: job.data.teamId } : { ownerUserId: job.data.enqueuedByUserId }),
+                ownerUserId: job.data.enqueuedByUserId,
                 manualId: job.data.manualId,
             }).lean();
 
@@ -53,7 +53,6 @@ export function startPipelineWorker(): Worker<ChecklistGenerationJobPayload> {
                     $set: {
                         checklistId,
                         ownerUserId: job.data.enqueuedByUserId,
-                        ...(job.data.teamId ? { teamId: job.data.teamId } : {}),
                         manualId: manual.manualId,
                         sourceJobId: queueJobId,
                         itemCount: Number(pipelineResult.generate.item_count ?? 0),

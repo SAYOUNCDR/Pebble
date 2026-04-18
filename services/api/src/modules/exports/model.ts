@@ -5,7 +5,6 @@ export type ExportStatus = "ready" | "failed";
 export interface ExportDocument {
     exportId: string;
     ownerUserId: string;
-    teamId?: string;
     checklistId: string;
     format: "pdf";
     status: ExportStatus;
@@ -20,7 +19,6 @@ const exportSchema = new Schema<ExportDocument>(
     {
         exportId: { type: String, required: true, unique: true, index: true },
         ownerUserId: { type: String, required: true, index: true },
-        teamId: { type: String, index: true },
         checklistId: { type: String, required: true, index: true },
         format: { type: String, enum: ["pdf"], required: true },
         status: { type: String, enum: ["ready", "failed"], required: true, index: true },

@@ -4,20 +4,22 @@ import express, { type Request, type Response } from "express";
 
 import { HttpError } from "../../utils/httpError.js";
 import { requireAuth } from "../auth/middleware.js";
-import { resolveAccessScope, scopeQuery } from "../teams/scope.js";
 import { ExportModel } from "./model.js";
 
 export const exportsRouter = express.Router();
 
 exportsRouter.get("/:exportId", requireAuth, async (request: Request, response: Response) => {
-    const scope = await resolveAccessScope(request);
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
 
     const exportId = request.params.exportId;
     if (!exportId) {
         throw new HttpError("Export ID is required.", 400);
     }
 
-    const exportArtifact = await ExportModel.findOne(scopeQuery(scope, { exportId })).lean();
+    const exportArtifact = await ExportModel.findOne({ ownerUserId, exportId }).lean();
     if (!exportArtifact) {
         throw new HttpError("Export not found.", 404);
     }
@@ -31,14 +33,17 @@ exportsRouter.get("/:exportId", requireAuth, async (request: Request, response: 
 });
 
 exportsRouter.get("/:exportId/file", requireAuth, async (request: Request, response: Response) => {
-    const scope = await resolveAccessScope(request);
+    const ownerUserId = request.authUser?.sub;
+    if (!ownerUserId) {
+        throw new HttpError("Unauthorized.", 401);
+    }
 
     const exportId = request.params.exportId;
     if (!exportId) {
         throw new HttpError("Export ID is required.", 400);
     }
 
-    const exportArtifact = await ExportModel.findOne(scopeQuery(scope, { exportId })).lean();
+    const exportArtifact = await ExportModel.findOne({ ownerUserId, exportId }).lean();
     if (!exportArtifact) {
         throw new HttpError("Export not found.", 404);
     }
