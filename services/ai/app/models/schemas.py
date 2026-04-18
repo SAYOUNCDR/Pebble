@@ -24,6 +24,27 @@ class IngestResponse(BaseModel):
     status: Literal["ingested"]
 
 
+class ChatSuggestedChecklistPayload(BaseModel):
+    objective: str
+    max_items: int = Field(default=20, ge=1, le=100)
+    provider: Literal["local", "pageindex"] = "local"
+    retrieval_mode: Literal["heuristic", "tree_search"] = "heuristic"
+    strict_citations: bool = True
+
+
+class ChatQueryRequest(BaseModel):
+    manual_id: str = Field(min_length=3, max_length=80)
+    message: str = Field(min_length=1, max_length=500)
+    manual_name: str | None = None
+    file_path: str | None = None
+
+
+class ChatQueryResponse(BaseModel):
+    manual_id: str
+    reply: str
+    suggested_checklist_payload: ChatSuggestedChecklistPayload | None = None
+
+
 class SectionOutline(BaseModel):
     section_id: str
     title: str

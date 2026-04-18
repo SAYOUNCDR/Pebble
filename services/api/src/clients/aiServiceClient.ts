@@ -69,6 +69,34 @@ export async function verifyChecklist(payload: unknown): Promise<unknown> {
     }
 }
 
+export interface ChatRequest {
+    manual_id: string;
+    message: string;
+    manual_name?: string;
+    file_path?: string;
+}
+
+export interface ChatResponse {
+    manual_id: string;
+    reply: string;
+    suggested_checklist_payload?: {
+        objective: string;
+        max_items: number;
+        provider: "local" | "pageindex";
+        retrieval_mode: "heuristic" | "tree_search";
+        strict_citations: boolean;
+    } | null;
+}
+
+export async function chat(payload: ChatRequest): Promise<ChatResponse> {
+    try {
+        const response = await aiApi.post<ChatResponse>("/v1/chat/query", payload);
+        return response.data;
+    } catch (error) {
+        throw toHttpError(error, "AI chat failed.");
+    }
+}
+
 export interface PipelineRunInput {
     manualId: string;
     manualName: string;
