@@ -97,7 +97,7 @@ export function ChatInterface({ token, manualId, onSuggestChecklist }: ChatInter
             if (block.type === 'heading') {
                 return (
                     <div key={index} className="mt-3 first:mt-0">
-                        <p className="text-sm font-semibold text-slate-900">{block.text}</p>
+                        <p className="text-base font-bold text-slate-900">{block.text}</p>
                     </div>
                 )
             }

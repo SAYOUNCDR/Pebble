@@ -18,20 +18,37 @@ const chatHistoryQuerySchema = z.object({
     manualId: z.string().min(3).max(80),
 })
 
+const suggestedChecklistPayloadSchema = z.union([
+    z.object({
+        checklistName: z.string().optional(),
+        objective: z.string(),
+        maxItems: z.number(),
+        provider: z.enum(['local', 'pageindex']),
+        retrievalMode: z.enum(['heuristic', 'tree_search']),
+        strictCitations: z.boolean(),
+    }),
+    z.object({
+        checklist_name: z.string().optional(),
+        objective: z.string(),
+        max_items: z.number(),
+        provider: z.enum(['local', 'pageindex']),
+        retrieval_mode: z.enum(['heuristic', 'tree_search']),
+        strict_citations: z.boolean(),
+    }).transform((payload) => ({
+        checklistName: payload.checklist_name,
+        objective: payload.objective,
+        maxItems: payload.max_items,
+        provider: payload.provider,
+        retrievalMode: payload.retrieval_mode,
+        strictCitations: payload.strict_citations,
+    })),
+])
+
 const persistedChatMessageSchema = z.object({
     role: z.enum(['user', 'assistant']),
     content: z.string(),
     timestamp: z.union([z.date(), z.string(), z.number()]),
-    suggestedChecklistPayload: z
-        .object({
-            checklistName: z.string().optional(),
-            objective: z.string(),
-            maxItems: z.number(),
-            provider: z.enum(['local', 'pageindex']),
-            retrievalMode: z.enum(['heuristic', 'tree_search']),
-            strictCitations: z.boolean(),
-        })
-        .optional(),
+    suggestedChecklistPayload: suggestedChecklistPayloadSchema.optional(),
 })
 
 type PersistedChatMessage = z.infer<typeof persistedChatMessageSchema>
@@ -57,8 +74,8 @@ function serializeChatMessages(messages: unknown[]): SerializedChatMessage[] {
             message.timestamp instanceof Date
                 ? message.timestamp.getTime()
                 : typeof message.timestamp === 'number'
-                  ? message.timestamp
-                  : new Date(message.timestamp).getTime()
+                    ? message.timestamp
+                    : new Date(message.timestamp).getTime()
 
         serialized.push({
             role: message.role,
@@ -69,6 +86,19 @@ function serializeChatMessages(messages: unknown[]): SerializedChatMessage[] {
     }
 
     return serialized
+}
+
+function normalizeSuggestedChecklistPayload(payload: unknown): PersistedChatMessage['suggestedChecklistPayload'] | undefined {
+    if (!payload) {
+        return undefined
+    }
+
+    const parsed = suggestedChecklistPayloadSchema.safeParse(payload)
+    if (!parsed.success) {
+        return undefined
+    }
+
+    return parsed.data
 }
 
 chatRouter.get('/history', requireAuth, async (request: Request, response: Response) => {
@@ -130,6 +160,8 @@ chatRouter.post('/query', requireAuth, async (request: Request, response: Respon
         chat_history: chatHistory.map((message) => ({ role: message.role, content: message.content })),
     })
 
+    const normalizedSuggestion = normalizeSuggestedChecklistPayload(aiResponse.suggested_checklist_payload)
+
     const nextMessages = [
         ...(thread?.messages ?? []),
         {
@@ -141,7 +173,7 @@ chatRouter.post('/query', requireAuth, async (request: Request, response: Respon
             role: 'assistant',
             content: aiResponse.reply,
             timestamp: new Date(),
-            ...(aiResponse.suggested_checklist_payload ? { suggestedChecklistPayload: aiResponse.suggested_checklist_payload } : {}),
+            ...(normalizedSuggestion ? { suggestedChecklistPayload: normalizedSuggestion } : {}),
         },
     ]
 
@@ -153,6 +185,6 @@ chatRouter.post('/query', requireAuth, async (request: Request, response: Respon
 
     response.status(200).json({
         reply: aiResponse.reply,
-        ...(aiResponse.suggested_checklist_payload && { suggestedChecklistPayload: aiResponse.suggested_checklist_payload }),
+        ...(normalizedSuggestion && { suggestedChecklistPayload: normalizedSuggestion }),
     })
 })

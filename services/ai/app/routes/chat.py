@@ -210,6 +210,52 @@ def _suggested_checklist_payload(message: str) -> ChatSuggestedChecklistPayload 
     )
 
 
+def _normalize_suggested_payload(
+    payload: dict[str, object] | None,
+) -> ChatSuggestedChecklistPayload | None:
+    if not isinstance(payload, dict):
+        return None
+
+    try:
+        return ChatSuggestedChecklistPayload.model_validate(payload)
+    except Exception:
+        pass
+
+    # Support camelCase variants if model ignores the required snake_case schema.
+    try:
+        if "objective" in payload:
+            return ChatSuggestedChecklistPayload.model_validate(
+                {
+                    "checklist_name": payload.get("checklistName"),
+                    "objective": payload.get("objective"),
+                    "max_items": payload.get("maxItems", 20),
+                    "provider": payload.get("provider", "local"),
+                    "retrieval_mode": payload.get("retrievalMode", "heuristic"),
+                    "strict_citations": payload.get("strictCitations", True),
+                }
+            )
+    except Exception:
+        pass
+
+    # Handle malformed suggestion blocks such as {"Checklist_Suggestions": [...]}.
+    raw_suggestions = payload.get("Checklist_Suggestions")
+    if isinstance(raw_suggestions, list) and raw_suggestions:
+        first = raw_suggestions[0]
+        if isinstance(first, dict):
+            raw_name = str(first.get("Name", "")).strip()
+            checklist_name = raw_name or "Checklist"
+            return ChatSuggestedChecklistPayload(
+                checklist_name=checklist_name,
+                objective=f"Generate a practical checklist for {checklist_name}.",
+                max_items=20,
+                provider="local",
+                retrieval_mode="heuristic",
+                strict_citations=True,
+            )
+
+    return None
+
+
 async def _ensure_manual_ingested(
     payload: ChatQueryRequest,
 ) -> tuple[dict[str, object], str]:
@@ -265,6 +311,8 @@ async def query_chat(payload: ChatQueryRequest) -> ChatQueryResponse:
                             "Use the provided context first, but if the manual does not contain enough detail, provide a short general-guidance answer and clearly label it as general guidance. "
                             "Use prior conversation as context so follow-up questions stay connected. "
                             "Return valid JSON with keys reply and suggested_checklist_payload. "
+                            "suggested_checklist_payload must be either null or a single object with keys: checklist_name, objective, max_items, provider, retrieval_mode, strict_citations. "
+                            "Do not return arrays, nested suggestion collections, or custom keys such as Checklist_Suggestions. "
                             "The reply value must be plain text with short headings, blank lines, and bullet points or numbered lists. "
                             "Do not use markdown bold markers, markdown tables, or asterisks for emphasis. "
                             "Keep the answer concise, readable, confident, and a little cool."
@@ -292,25 +340,17 @@ async def query_chat(payload: ChatQueryRequest) -> ChatQueryResponse:
 
                 parsed_suggestion = parsed.get("suggested_checklist_payload")
                 if isinstance(parsed_suggestion, dict):
-                    try:
-                        suggested_payload = (
-                            ChatSuggestedChecklistPayload.model_validate(
-                                parsed_suggestion
-                            )
-                        )
-                    except Exception:
-                        pass
+                    normalized = _normalize_suggested_payload(parsed_suggestion)
+                    if normalized is not None:
+                        suggested_payload = normalized
                 elif suggested_payload is None and isinstance(
                     parsed.get("suggestedChecklistPayload"), dict
                 ):
-                    try:
-                        suggested_payload = (
-                            ChatSuggestedChecklistPayload.model_validate(
-                                parsed["suggestedChecklistPayload"]
-                            )
-                        )
-                    except Exception:
-                        pass
+                    normalized = _normalize_suggested_payload(
+                        parsed["suggestedChecklistPayload"]
+                    )
+                    if normalized is not None:
+                        suggested_payload = normalized
             elif isinstance(model_output, str) and model_output.strip():
                 reply = model_output.strip()
 
