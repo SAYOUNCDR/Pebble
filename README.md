@@ -11,6 +11,10 @@ Pebble turns technical manuals into structured, editable checklists with citatio
 
 Reason through manuals, do not just keyword search them.
 
+<div align="center">
+  <img src="./docs/github.png" alt="Pebble Overview" width="800" />
+</div>
+
 ## Overview
 
 Pebble helps teams transform dense maintenance and operations documentation into practical, auditable checklist workflows.
